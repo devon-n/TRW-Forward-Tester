@@ -1,0 +1,9 @@
+.env
+TV-binance
+todo.txt
+test.csv
+.DS_Store
+*.pyc
+ForwardTester
+Forward_Tester
+__pycache__/
