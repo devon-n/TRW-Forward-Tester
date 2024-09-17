@@ -73,8 +73,6 @@ def execute_order(data):
             quantity = "0.002" if ticker == "BTCUSDT" else quantity
             quantity = "2" if ticker == "AVAXUSDT" else quantity
             quantity = "700" if ticker == "1000PEPEUSDT" else quantity
-            print("Trade: ", json.loads(data))
-            print('\n')
             order_response = client.new_order(
                 symbol=ticker,
                 side=side,
