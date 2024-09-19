@@ -18,7 +18,7 @@ def whitelist_ip(func):
     def wrapper(*args, **kwargs):
         real_ip = (str(request.headers.get('X-Forwarded-For', request.remote_addr))).split(',')[0].strip()
         print(f"\nreal_ip: {real_ip}\n")
-        print(f"\n whitelisted_ips: {whitelisted_ips}\n"
+        print(f"\n whitelisted_ips: {whitelisted_ips}\n")
         if real_ip not in whitelisted_ips:
             message = f"Access denied: Your IP {real_ip} is not allowed."
             print(message)
