@@ -10,32 +10,23 @@ load_dotenv()
 # TODO have list of discontinued strategies that are dropped from the beginning
 #   How to handle discontinued: Default don't show but have button that does show
     # Pause alert on TV
-# TODO  Have false on start up
+st.set_page_config(layout='wide')
 
-# If latest date is today: True : False
-LOCAL = False
-# LOCAL = True
-
-if not LOCAL:
-    # TODO cache this
+@st.cache_data(ttl=3600)  # Cache for 1 hour
+def get_data_from_mongodb():
     print('\nGetting data from DB...\n')
     mongo_client = MongoClient(os.getenv('MONGO_URI'))
     db = mongo_client.trading
     trades_collection = db.trades
-
-    # Query all documents (or modify the query as needed)
     trades = list(trades_collection.find({}))
-
-    # Convert the list of dictionaries to a DataFrame
     df = pd.DataFrame(trades)
-    print('Saving CSV')
-    df.to_csv('test.csv',index=False)
-else:
-    df = pd.read_csv('test.csv', parse_dates=['time'])
+    print('Data retrieved from MongoDB')
+    return df
 
-st.set_page_config(layout='wide')
-# TODO dropdown and timeframes
-# TODO scroll top 2 charts
+
+df = get_data_from_mongodb()
+print('Saving CSV')
+df.to_csv('test.csv', index=False)
 
 
 df['Time'] = pd.to_datetime(df['time'])
