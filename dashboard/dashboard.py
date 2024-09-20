@@ -13,8 +13,8 @@ load_dotenv()
 # TODO  Have false on start up
 
 # If latest date is today: True : False
-# LOCAL = False
-LOCAL = True
+LOCAL = False
+# LOCAL = True
 
 if not LOCAL:
     # TODO cache this
