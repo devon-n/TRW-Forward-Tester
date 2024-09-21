@@ -1,10 +1,9 @@
 import json
 import os
-from flask import Flask, request, jsonify, abort, Response
+from flask import Flask, request, jsonify, abort
 from binance.um_futures import UMFutures
 from pymongo import MongoClient # type: ignore
 from dotenv import load_dotenv
-from position_sizing import getMinQuantity
 
 load_dotenv()
 
@@ -22,7 +21,7 @@ def whitelist_ip(func):
         if real_ip not in whitelisted_ips:
             message = f"Access denied: Your IP {real_ip} is not allowed."
             print(message)
-            abort(Response  (message, 403))
+            abort(403, description=message)
         return func(*args, **kwargs)
     return wrapper
 

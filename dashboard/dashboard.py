@@ -3,13 +3,10 @@ import streamlit as st
 
 from helpers import calculate_profit, truncate_name
 from dotenv import load_dotenv
-from pymongo import MongoClient
+from pymongo import MongoClient # type: ignore
 import os
 load_dotenv()
 
-# TODO have list of discontinued strategies that are dropped from the beginning
-#   How to handle discontinued: Default don't show but have button that does show
-    # Pause alert on TV
 st.set_page_config(layout='wide')
 
 @st.cache_data(ttl=3600)  # Cache for 1 hour
@@ -78,15 +75,21 @@ num_paper = df[df['order_type'] == 'PAPER']['strategy_name'].nunique()
 num_real = df[df['order_type'] != 'PAPER']['strategy_name'].nunique()
 total_strategies = num_paper + num_real
 
+# How many months each strategy is trading
+df['trading_months'] = df.groupby('strategy_name')['Time'].transform(lambda x: (x.max() - x.min()).days / 30)
+
+# Get all trading months
+allMonths = [date.strftime('%b') for date in df['Time'].dt.to_period('M').unique()]
 
 
 def reset_filters():
     st.session_state['select_strategies'] = unique_strategy_names
-    st.session_state['month_picker'] = [date.strftime('%b') for date in df['Time'].dt.to_period('M').unique()]
-    st.session_state['date_slider'] = (
-        df['Time'].iloc[0].to_pydatetime(),
-        df['Time'].iloc[-1].to_pydatetime()
-    )
+    st.session_state['month_picker'] = allMonths
+    # st.session_state['date_slider'] = (
+    #     df['Time'].iloc[0].to_pydatetime(),
+    #     df['Time'].iloc[-1].to_pydatetime()
+    # )
+    st.session_state['min_months'] = 0
     st.session_state['min_trades'] = 0
     st.session_state['order_type_selector'] = 'All'
     st.session_state['profitable_selector'] = 'All'
@@ -95,35 +98,31 @@ def reset_filters():
 
 select_all = st.sidebar.button("Reset Filters", on_click=reset_filters)
 
-
 st.sidebar.write("## TIME FILTERS")
 MONTHS = st.sidebar.multiselect(
     'What months do you want to view?',
-    default=[date.strftime('%b') for date in df['Time'].dt.to_period('M').unique()],
-    options=[date.strftime('%b') for date in df['Time'].dt.to_period('M').unique()],
-    key='month_picker'
+    default=allMonths,
+    options=allMonths,
+    key='month_picker',
+    label_visibility='collapsed'
 )
 
-TIME_SLIDER = st.sidebar.slider(
-    'Between what dates?',
-    min_value=df['Time'].iloc[0].to_pydatetime(),
-    max_value=df['Time'].iloc[-1].to_pydatetime(),
-    value=(
-        df['Time'].iloc[0].to_pydatetime(),
-        df['Time'].iloc[-1].to_pydatetime()
-    ),
-    format="MM/DD/YY - hh:mm",
-    key='date_slider'
-)
-
-st.sidebar.write("## Trade Types")
-NUM_TRADES = st.sidebar.slider(
-    'Filter by Min Trades',
+MIN_MONTHS = st.sidebar.number_input(
+    'Filter by Min Trading Months',
     min_value=0,
+    max_value=int(df['trading_months'].max()),
+    value=0,
+    step=1,
+    key="min_months"
+)
+
+NUM_TRADES = st.sidebar.number_input(
+    'Filter by Min Trades',
     max_value=df['strategy_name'].value_counts().max(),
     key="min_trades"
 )
 
+st.sidebar.write("## Trade Types")
 ORDER_TYPE = st.sidebar.radio("Filter by paper/real", options=['All', 'Paper', 'Real'], key='order_type_selector')
 
 PROFITABLE = st.sidebar.radio("Filter by Profitable", options=['All', 'Profitable', 'Unprofitable'], key='profitable_selector')
@@ -146,8 +145,7 @@ SYMBOLS = st.sidebar.multiselect(
 
 ###### FILTERS ######
 df_selection = df.query("strategy_name == @STRATEGY_NAME and symbol == @SYMBOLS")
-df_selection = df_selection.loc[(df_selection['Time'] >= TIME_SLIDER[0]) & (df_selection['Time'] <= TIME_SLIDER[1])]
-# df_selection = df_selection.loc[df_selection['Time'].dt.month_name().isin(MONTHS)]
+
 df_selection = df_selection.groupby('strategy_name').filter(lambda x: len(x) >= NUM_TRADES)
 
 if PROFITABLE == 'Profitable':
@@ -175,6 +173,7 @@ df_selection['Profit Per Trade Low'] = df_selection.groupby('strategy_name')['Ro
 df_selection['Profit Per Trade High'] = df_selection.groupby('strategy_name')['Rolling Total USD High'].diff()
 df_selection['Cumulative Profit Low'] = df_selection['Profit Per Trade Low'].cumsum()
 df_selection['Cumulative Profit High'] = df_selection['Profit Per Trade High'].cumsum()
+df_selection = df_selection.groupby('strategy_name').filter(lambda x: x['trading_months'].iloc[0] >= MIN_MONTHS)
 
 ###### CHARTS ######
 st.write('## Strategies over time')
