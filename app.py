@@ -4,23 +4,31 @@ from flask import Flask, request, jsonify, abort
 from binance.um_futures import UMFutures
 from pymongo import MongoClient # type: ignore
 from dotenv import load_dotenv
+from functools import lru_cache
 
 load_dotenv()
 
 app = Flask(__name__)
 
-# Get whitelisted IP addresses from environment variable
-whitelisted_ips = os.environ.get('WHITELISTED_IPS', '').split(',')
+minQtyDict = {
+                "ARBUSDT": "9",
+                "BTCUSDT": "0.002",
+                "AVAXUSDT": "2",
+                "1000PEPEUSDT": "700"
+            }
+
+@lru_cache(maxsize=1)
+def get_whitelisted_ips():
+    return set(os.environ.get('WHITELISTED_IPS', '').split(','))
 
 # Decorator to restrict access to whitelisted IPs only
 def whitelist_ip(func):
     def wrapper(*args, **kwargs):
+        # Get whitelisted IP addresses from environment variable
+        whitelisted_ips = get_whitelisted_ips()
         real_ip = (str(request.headers.get('X-Forwarded-For', request.remote_addr))).split(',')[0].strip()
-        print(f"\nreal_ip: {real_ip}\n")
-        print(f"\n whitelisted_ips: {whitelisted_ips}\n")
         if real_ip not in whitelisted_ips:
             message = f"Access denied: Your IP {real_ip} is not allowed."
-            print(message)
             abort(403, description=message)
         return func(*args, **kwargs)
     return wrapper
@@ -71,10 +79,10 @@ def execute_order(data):
             client = UMFutures(os.getenv('API_KEY'), os.getenv('API_SECRET'))
             # client.futures_change_leverage(symbol=ticker, leverage=leverage)
             # client.futures_change_margin_type(symbol=ticker, marginType="ISOLATED")
-            # Todo create dictionary for these
-            quantity = "0.002" if ticker == "BTCUSDT" else quantity
-            quantity = "2" if ticker == "AVAXUSDT" else quantity
-            quantity = "700" if ticker == "1000PEPEUSDT" else quantity
+
+            if ticker in minQtyDict:
+                quantity = minQtyDict[ticker]
+
             order_response = client.new_order(
                 symbol=ticker,
                 side=side,
