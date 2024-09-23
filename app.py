@@ -83,6 +83,8 @@ def execute_order(data):
             if ticker in minQtyDict:
                 quantity = minQtyDict[ticker]
 
+            print(f"\nSending Order: {json.dumps(data)}\n")
+
             order_response = client.new_order(
                 symbol=ticker,
                 side=side,
