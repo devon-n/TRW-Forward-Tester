@@ -81,7 +81,8 @@ def execute_order(data):
             # client.futures_change_margin_type(symbol=ticker, marginType="ISOLATED")
 
             if ticker in minQtyDict:
-                quantity = minQtyDict[ticker]
+                if float(quantity) < float(minQtyDict[ticker]):
+                    quantity = minQtyDict[ticker]
 
             print(f"\nSending Order: {json.dumps(data)}\n")
 
