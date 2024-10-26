@@ -17,6 +17,13 @@ minQtyDict = {
                 "1000PEPEUSDT": "700"
             }
 
+precisionDecimalDict = {
+    "1000SHIBUSDT": 0,
+    "1000PEPEUSDT": 0,
+    "KAVAUSDT":1,
+    "ARBUSDT": 1
+}
+
 @lru_cache(maxsize=1)
 def get_whitelisted_ips():
     return set(os.environ.get('WHITELISTED_IPS', '').split(','))
@@ -83,6 +90,9 @@ def execute_order(data):
             if ticker in minQtyDict:
                 if float(quantity) < float(minQtyDict[ticker]):
                     quantity = minQtyDict[ticker]
+
+            if ticker in precisionDecimalDict:
+                quantity = str(round(float(quantity), precisionDecimalDict[ticker]))
 
             print(f"\nSending Order: {json.dumps(data)}\n")
 
