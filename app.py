@@ -48,25 +48,28 @@ trades_collection = db.trades
 
 def record_trade(data, order_response):
     """Records trade to MongoDB with strategy information."""
-    trades_collection.insert_one({
-        "time": data["bar"]["time"],
-        "strategy_name": data["strategyName"],
-        "symbol": data["ticker"],
-        "timeframe":data.get("timeframe"),
-        "close":data["bar"]["close"],
-        "order_price": data["strategy"]["order_price"],
-        "side": data['strategy']['order_action'].upper(),
-        "quantity": data['strategy']['order_contracts'],
-        "leverage": data["leverage"],
-        "order_type": data["order_type"],
-        "order_response": order_response,
-        "strategy_position_size": data["strategy"]["position_size"],
-        "strategy_order_id": data["strategy"]["order_id"],
-        "strategy_market_position": data["strategy"]["market_position"],
-        "strategy_market_position_size": data["strategy"]["market_position_size"],
-        "prev_market_position": data["strategy"]["prev_market_position"],
-        "prev_market_position_size": data["strategy"]["prev_market_position_size"]
-    })
+    try:
+        trades_collection.insert_one({
+            "time": data["bar"]["time"],
+            "strategy_name": data["strategyName"],
+            "symbol": data["ticker"],
+            "timeframe":data.get("timeframe"),
+            "close":data["bar"]["close"],
+            "order_price": data["strategy"]["order_price"],
+            "side": data['strategy']['order_action'].upper(),
+            "quantity": data['strategy']['order_contracts'],
+            "leverage": data["leverage"],
+            "order_type": data["order_type"],
+            "order_response": order_response,
+            "strategy_position_size": data["strategy"]["position_size"],
+            "strategy_order_id": data["strategy"]["order_id"],
+            "strategy_market_position": data["strategy"]["market_position"],
+            "strategy_market_position_size": data["strategy"]["market_position_size"],
+            "prev_market_position": data["strategy"]["prev_market_position"],
+            "prev_market_position_size": data["strategy"]["prev_market_position_size"]
+        })
+    except Exception as e:
+        print(f"Failed Order: An exception occurred: {e}")
 
 def execute_order(data):
     """Executes a real Binance order or simulates it for paper trading."""
