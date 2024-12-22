@@ -9,6 +9,11 @@
 - Record trade in mongo db
 
 
+# Update Minimum Quantities or Precisions for Binance Orders
+- Update in `config`
+- Add the the symbol and the minimum quantity or minimum precision
+
+
 ## Keep all trading logic in TV
 The following can change
 - Position size?

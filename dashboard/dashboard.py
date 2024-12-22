@@ -5,6 +5,13 @@ from helpers import calculate_profit, truncate_name
 from dotenv import load_dotenv
 from pymongo import MongoClient # type: ignore
 import os
+
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from config import minQtyDict, precisionDecimalDict
+
+
 load_dotenv()
 
 st.set_page_config(layout='wide')
@@ -30,6 +37,20 @@ df['Time'] = pd.to_datetime(df['time'])
 df['close'] = pd.to_numeric(df['close'])
 df['order_price'] = pd.to_numeric(df['order_price'])
 df['quantity'] = pd.to_numeric(df['quantity'])
+
+# For minQtyDict check and update
+df['symbol'] = df['symbol'].str.replace('.P', '')
+df['symbol'] = df['symbol'].apply(lambda x: x + "T" if x.endswith("USD") else x)
+
+# Apply minimum quantity check
+df.loc[df['symbol'].isin(minQtyDict), 'quantity'] = df.loc[df['symbol'].isin(minQtyDict)].apply(
+    lambda row: max(row['quantity'], float(minQtyDict[row['symbol']])), axis=1
+)
+
+# Apply precision decimal rounding
+df.loc[df['symbol'].isin(precisionDecimalDict), 'quantity'] = df.loc[df['symbol'].isin(precisionDecimalDict)].apply(
+    lambda row: round(row['quantity'], precisionDecimalDict[row['symbol']]), axis=1
+)
 
 strategy_balances = {}
 df[['Rolling Asset', 'Rolling USD High', 'Rolling USD Low', 'Rolling Total USD High', 'Rolling Total USD Low']] = df.apply(

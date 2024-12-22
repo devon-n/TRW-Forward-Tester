@@ -5,24 +5,12 @@ from binance.um_futures import UMFutures
 from pymongo import MongoClient # type: ignore
 from dotenv import load_dotenv
 from functools import lru_cache
+from config import minQtyDict, precisionDecimalDict
 
 load_dotenv()
 
 app = Flask(__name__)
 
-minQtyDict = {
-                "ARBUSDT": "9",
-                "BTCUSDT": "0.002",
-                "AVAXUSDT": "2",
-                "1000PEPEUSDT": "700"
-            }
-
-precisionDecimalDict = {
-    "1000SHIBUSDT": 0,
-    "1000PEPEUSDT": 0,
-    "KAVAUSDT":1,
-    "ARBUSDT": 1
-}
 
 @lru_cache(maxsize=1)
 def get_whitelisted_ips():
@@ -81,22 +69,24 @@ def execute_order(data):
         order_type = data.get('order_type', 'PAPER').upper()  # Default to paper trading
         print(f"Preparing order {order_type} - {side} {quantity} {ticker} with leverage {leverage}")
 
+        # Update min qty and precision
+        ticker = ticker.replace('.P', '')
+        ticker = ticker + "T" if ticker.endswith("USD") else ticker
+        if ticker in minQtyDict:
+            if float(quantity) < float(minQtyDict[ticker]):
+                quantity = minQtyDict[ticker]
+
+        if ticker in precisionDecimalDict:
+            quantity = str(round(float(quantity), precisionDecimalDict[ticker]))
+
+        data['strategy']['order_contracts'] = quantity
+
         if order_type == "REAL":
 
-            ticker = ticker.replace('.P', '')
-            ticker = ticker + "T" if ticker.endswith("USD") else ticker
             # Initialize Binance client with environment variables
             client = UMFutures(os.getenv('API_KEY'), os.getenv('API_SECRET'))
             # client.futures_change_leverage(symbol=ticker, leverage=leverage)
             # client.futures_change_margin_type(symbol=ticker, marginType="ISOLATED")
-
-            if ticker in minQtyDict:
-                if float(quantity) < float(minQtyDict[ticker]):
-                    quantity = minQtyDict[ticker]
-
-            if ticker in precisionDecimalDict:
-                quantity = str(round(float(quantity), precisionDecimalDict[ticker]))
-
             print(f"\nSending Order: {json.dumps(data)}\n")
 
             order_response = client.new_order(
