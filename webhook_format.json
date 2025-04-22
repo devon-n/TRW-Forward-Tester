@@ -1,11 +1,11 @@
 {
-  "strategyName": "_______",
-  "order_type": "PAPER",
+  "strategyName": "SOLUSDT 1m 21 EMA Rejection Trend Following",
+  "order_type": "REAL",
   "time": "{{timenow}}",
   "exchange": "{{exchange}}",
   "timeframe": "{{interval}}",
   "ticker": "{{ticker}}",
-  "leverage": "0",
+  "leverage": "{{strategy.order.alert_message}}",
   "bar": {
     "time": "{{time}}",
     "open": "{{open}}",
@@ -25,5 +25,5 @@
     "prev_market_position": "{{strategy.prev_market_position}}",
     "prev_market_position_size": "{{strategy.prev_market_position_size}}"
   },
-  "passphrase": "________________"
+  "passphrase": ""
 }

@@ -1,6 +1,8 @@
 minQtyDict = {
     "ARBUSDT": "9",
     "BTCUSDT": "0.002",
+    "ETHUSDT": "0.012",
+    "SOLUSDT": "0.04",
     "AVAXUSDT": "2",
     "1000PEPEUSDT": "700"
 }
