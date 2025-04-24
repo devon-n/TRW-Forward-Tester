@@ -84,7 +84,7 @@ def execute_order(data):
         if order_type == "REAL":
 
             # Initialize Binance client with environment variables
-            client = UMFutures(key=os.getenv('API_KEY'), secret=os.getenv('API_SECRET'))
+            client = UMFutures(os.getenv('API_KEY'), os.getenv('API_SECRET'))
             # client.futures_change_leverage(symbol=ticker, leverage=leverage)
             # client.futures_change_margin_type(symbol=ticker, marginType="ISOLATED")
             print(f"\nSending Order: {json.dumps(data)}\n")
