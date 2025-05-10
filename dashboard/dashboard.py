@@ -32,6 +32,9 @@ df = get_data_from_mongodb()
 print('Saving CSV')
 df.to_csv('test.csv', index=False)
 
+if len(df) == 0:
+    print("\n\nNo trades in database check webhook settings, network access for database, .env file and render environment variables are correct\n\n")
+    sys.exit()
 
 df['Time'] = pd.to_datetime(df['time'])
 df['close'] = pd.to_numeric(df['close'])
