@@ -85,8 +85,8 @@ def execute_order(data):
 
             # Initialize Binance client with environment variables
             client = UMFutures(os.getenv('API_KEY'), os.getenv('API_SECRET'))
-            # client.futures_change_leverage(symbol=ticker, leverage=leverage)
-            # client.futures_change_margin_type(symbol=ticker, marginType="ISOLATED")
+            client.futures_change_leverage(symbol=ticker, leverage=leverage)
+            client.futures_change_margin_type(symbol=ticker, marginType="ISOLATED")
             print(f"\nSending Order: {json.dumps(data)}\n")
 
             order_response = client.new_order(
