@@ -1,5 +1,5 @@
 {
-  "strategyName": "_______",
+  "strategyName": "BTCUSDT 1m Michaels Bands",
   "order_type": "PAPER",
   "time": "{{timenow}}",
   "exchange": "{{exchange}}",
@@ -25,5 +25,5 @@
     "prev_market_position": "{{strategy.prev_market_position}}",
     "prev_market_position_size": "{{strategy.prev_market_position_size}}"
   },
-  "passphrase": "________________"
+  "passphrase": ""
 }
