@@ -2,6 +2,7 @@ import json
 import os
 from flask import Flask, request, jsonify, abort
 from binance.um_futures import UMFutures
+from pybit.unified_trading import HTTP
 from pymongo import MongoClient # type: ignore
 from dotenv import load_dotenv
 from functools import lru_cache
@@ -44,7 +45,7 @@ def record_trade(data, order_response):
             "timeframe":data.get("timeframe"),
             "close":data["bar"]["close"],
             "order_price": data["strategy"]["order_price"],
-            "side": data['strategy']['order_action'].upper(),
+            "side": data['strategy']['order_action'].upper(), 
             "quantity": data['strategy']['order_contracts'],
             "leverage": data["leverage"],
             "order_type": data["order_type"],
@@ -83,18 +84,32 @@ def execute_order(data):
 
         if order_type == "REAL":
 
+            # Initialize Bybit HTTP with environment variables
+            session = HTTP(
+                testnet = False,
+                api_key = os.getenv('API_KEY'),
+                api_secret = os.getenv('API_SECRET'),
+            )
             # Initialize Binance client with environment variables
-            client = UMFutures(os.getenv('API_KEY'), os.getenv('API_SECRET'))
+            #client = UMFutures(os.getenv('API_KEY'), os.getenv('API_SECRET'))
             #client.futures_change_leverage(symbol=ticker, leverage=leverage)
             #client.futures_change_margin_type(symbol=ticker, marginType="ISOLATED")
             print(f"\nSending Order: {json.dumps(data)}\n")
 
-            order_response = client.new_order(
-                symbol=ticker,
-                side=side,
-                type="MARKET",
-                quantity=quantity
-                )
+            order_response = session.place_order(
+                category = "linear",
+                symbol = ticker,
+                side = side,
+                orderType = "Market",
+                qty = quantity,
+            )
+            
+            #order_response = client.new_order(
+            #    symbol=ticker,
+            #    side=side,
+            #    type="MARKET",
+            #    quantity=quantity
+            #    )
             print(f"Real order executed: {order_type} - {side} {quantity} {ticker} | {order_response}")
 
             # Get order price from trade response
