@@ -68,6 +68,7 @@ def execute_order(data):
         ticker = data['ticker']
         leverage = int(data.get('leverage', 0))  # Default leverage to 0 if not provided
         order_type = data.get('order_type', 'PAPER').upper()  # Default to paper trading
+        order_price = data['strategy']['order_price']
         print(f"Preparing order {order_type} - {side} {quantity} {ticker} with leverage {leverage}")
 
         # Update min qty and precision
@@ -96,13 +97,24 @@ def execute_order(data):
             #client.futures_change_margin_type(symbol=ticker, marginType="ISOLATED")
             print(f"\nSending Order: {json.dumps(data)}\n")
 
-            order_response = session.place_order(
-                category = "linear",
-                symbol = ticker,
-                side = side,
-                orderType = "Market",
-                qty = quantity,
-            )
+            if side == "Buy"
+                order_response = session.place_order(
+                    category = "linear",
+                    symbol = ticker,
+                    side = side,
+                    orderType = "Limit",
+                    qty = quantity,
+                    price = str(float(order_price)-0.01)
+                )
+            if side == "Sell"
+                order_response = session.place_order(
+                    category = "linear",
+                    symbol = ticker,
+                    side = side,
+                    orderType = "Limit",
+                    qty = quantity,
+                    price = str(float(order_price)+0.01)
+                )
             
             #order_response = client.new_order(
             #    symbol=ticker,
