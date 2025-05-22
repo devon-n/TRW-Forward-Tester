@@ -97,7 +97,7 @@ def execute_order(data):
             #client.futures_change_margin_type(symbol=ticker, marginType="ISOLATED")
             print(f"\nSending Order: {json.dumps(data)}\n")
 
-            if side == "Buy"
+            if side == "Buy":
                 order_response = session.place_order(
                     category = "linear",
                     symbol = ticker,
@@ -106,7 +106,7 @@ def execute_order(data):
                     qty = quantity,
                     price = str(float(order_price)-0.01)
                 )
-            if side == "Sell"
+            if side == "Sell":
                 order_response = session.place_order(
                     category = "linear",
                     symbol = ticker,
