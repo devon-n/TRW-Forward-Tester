@@ -69,6 +69,7 @@ def execute_order(data):
         leverage = int(data.get('leverage', 0))  # Default leverage to 0 if not provided
         order_type = data.get('order_type', 'PAPER').upper()  # Default to paper trading
         order_price = data['strategy']['order_price']
+        order_id = data['strategy']['order_id']
         print(f"Preparing order {order_type} - {side} {quantity} {ticker} with leverage {leverage}")
 
         # Update min qty and precision
@@ -98,23 +99,41 @@ def execute_order(data):
             print(f"\nSending Order: {json.dumps(data)}\n")
 
             if side == "Buy":
-                order_response = session.place_order(
-                    category = "linear",
-                    symbol = ticker,
-                    side = side,
-                    orderType = "Limit",
-                    qty = quantity,
-                    price = str(float(order_price)-0.01)
-                )
+                if order_id == "SL":
+                    order_response = session.place_order(
+                        category = "linear",
+                        symbol = ticker,
+                        side = side,
+                        orderType = "Market",
+                        qty = quantity,
+                    )
+                else:
+                    order_response = session.place_order(
+                        category = "linear",
+                        symbol = ticker,
+                        side = side,
+                        orderType = "Limit",
+                        qty = quantity,
+                        price = str(float(order_price)-0.01)
+                     )
             if side == "Sell":
-                order_response = session.place_order(
-                    category = "linear",
-                    symbol = ticker,
-                    side = side,
-                    orderType = "Limit",
-                    qty = quantity,
-                    price = str(float(order_price)+0.01)
-                )
+                if order_id == "SL":
+                    order_response = session.place_order(
+                        category = "linear",
+                        symbol = ticker,
+                        side = side,
+                        orderType = "Market",
+                        qty = quantity,
+                    )
+                else:
+                    order_response = session.place_order(
+                        category = "linear",
+                        symbol = ticker,
+                        side = side,
+                        orderType = "Limit",
+                        qty = quantity,
+                        price = str(float(order_price)+0.01)
+                     )
             
             #order_response = client.new_order(
             #    symbol=ticker,
