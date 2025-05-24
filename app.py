@@ -98,8 +98,8 @@ def execute_order(data):
                 session.set_leverage(
                     category="linear",
                     symbol=ticker,
-                    buyLeverage=leverage
-                    sellLeverage=leverage
+                    buyLeverage=leverage,
+                    sellLeverage=leverage,
                 )
             if strategy_name == "BTCUSDT 15m Impulse BoS Wick (Short) (Tue)":
                 session = HTTP(
@@ -110,8 +110,8 @@ def execute_order(data):
                 session.set_leverage(
                     category="linear",
                     symbol=ticker,
-                    buyLeverage=leverage
-                    sellLeverage=leverage
+                    buyLeverage=leverage,
+                    sellLeverage=leverage,
                 )
             if strategy_name == "BTCUSDT 15m Impulsive BoS (Short) (Tue/Fri)":
                 session = HTTP(
@@ -122,8 +122,8 @@ def execute_order(data):
                 session.set_leverage(
                     category="linear",
                     symbol=ticker,
-                    buyLeverage=leverage
-                    sellLeverage=leverage
+                    buyLeverage=leverage,
+                    sellLeverage=leverage,
                 )
             if strategy_name == "BTCUSDT 15m Reversal (Short) (Mon/Thu)":
                 session = HTTP(
@@ -134,8 +134,8 @@ def execute_order(data):
                 session.set_leverage(
                     category="linear",
                     symbol=ticker,
-                    buyLeverage=leverage
-                    sellLeverage=leverage
+                    buyLeverage=leverage,
+                    sellLeverage=leverage,
                 )
             if strategy_name == "BTCUSDT 15m Daily Open (Short) (Wed/Thu)":
                 session = HTTP(
@@ -146,8 +146,8 @@ def execute_order(data):
                 session.set_leverage(
                     category="linear",
                     symbol=ticker,
-                    buyLeverage=leverage
-                    sellLeverage=leverage
+                    buyLeverage=leverage,
+                    sellLeverage=leverage,
                 )
             if strategy_name == "BTCUSDT 15m Impulse BoS Wick (Long) (Mon/Tue/Thu)":
                 session = HTTP(
@@ -158,8 +158,8 @@ def execute_order(data):
                 session.set_leverage(
                     category="linear",
                     symbol=ticker,
-                    buyLeverage=leverage
-                    sellLeverage=leverage
+                    buyLeverage=leverage,
+                    sellLeverage=leverage,
                 )
             if strategy_name ==  "BTCUSDT 15m MACD Confirmation (Long) (ALL)":
                 session = HTTP(
@@ -170,8 +170,8 @@ def execute_order(data):
                 session.set_leverage(
                     category="linear",
                     symbol=ticker,
-                    buyLeverage=leverage
-                    sellLeverage=leverage
+                    buyLeverage=leverage,
+                    sellLeverage=leverage,
                 )
             if strategy_name ==  "BTCUSDT 15m Impulsive BoS (Long) (Mon/Tue/Wed)":
                 session = HTTP(
@@ -182,8 +182,8 @@ def execute_order(data):
                 session.set_leverage(
                     category="linear",
                     symbol=ticker,
-                    buyLeverage=leverage
-                    sellLeverage=leverage
+                    buyLeverage=leverage,
+                    sellLeverage=leverage,
                 )
             if strategy_name ==  "BTCUSDT 15m Asia Open (Long) (Mon/Sun)":
                 session = HTTP(
@@ -194,8 +194,8 @@ def execute_order(data):
                 session.set_leverage(
                     category="linear",
                     symbol=ticker,
-                    buyLeverage=leverage
-                    sellLeverage=leverage
+                    buyLeverage=leverage,
+                    sellLeverage=leverage,
                 )
             if strategy_name ==  "BTCUSDT 15m London Open (Long) (Mon,Tue,Thu,Fri)":
                 session = HTTP(
@@ -206,8 +206,8 @@ def execute_order(data):
                 session.set_leverage(
                     category="linear",
                     symbol=ticker,
-                    buyLeverage=leverage
-                    sellLeverage=leverage
+                    buyLeverage=leverage,
+                    sellLeverage=leverage,
                 )
             if strategy_name ==  "BTCUSDT 15m Reversal (Long) (Mon/Tue)":
                 session = HTTP(
@@ -218,8 +218,8 @@ def execute_order(data):
                 session.set_leverage(
                     category="linear",
                     symbol=ticker,
-                    buyLeverage=leverage
-                    sellLeverage=leverage
+                    buyLeverage=leverage,
+                    sellLeverage=leverage,
                 )
             if strategy_name ==  "BTCUSDT 15m BoS Retest in Trend (Long) (Mon/Fri/Sat/Sun)":
                 session = HTTP(
@@ -230,8 +230,8 @@ def execute_order(data):
                 session.set_leverage(
                     category="linear",
                     symbol=ticker,
-                    buyLeverage=leverage
-                    sellLeverage=leverage
+                    buyLeverage=leverage,
+                    sellLeverage=leverage,
                 )
             if strategy_name ==  "BTCUSDT 15m NY Open (Long) (Mon/Tue/Sun)":
                 session = HTTP(
@@ -242,8 +242,8 @@ def execute_order(data):
                 session.set_leverage(
                     category="linear",
                     symbol=ticker,
-                    buyLeverage=leverage
-                    sellLeverage=leverage
+                    buyLeverage=leverage,
+                    sellLeverage=leverage,
                 )
             if strategy_name ==  "BTCUSDT 15m Daily Open (Long) (Mon/Wed)":
                 session = HTTP(
@@ -254,8 +254,8 @@ def execute_order(data):
                 session.set_leverage(
                     category="linear",
                     symbol=ticker,
-                    buyLeverage=leverage
-                    sellLeverage=leverage
+                    buyLeverage=leverage,
+                    sellLeverage=leverage,
                 )
             # Initialize Binance client with environment variables
             #client = UMFutures(os.getenv('API_KEY'), os.getenv('API_SECRET'))
