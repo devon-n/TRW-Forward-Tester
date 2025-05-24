@@ -88,7 +88,7 @@ def execute_order(data):
         if order_type == "REAL":
 
             # Initialize Bybit HTTP with environment variables
-            if strategy_name == "BTCUSDT 1D MACD Confirmation (1D)":
+            if strategy_name == "BTCUSDT 1D MACD Confirmation (1D)" or strategy_name == "BTCUSDT 1D Peako Bottom Bidding (1D)":
                 session = HTTP(
                     testnet = False,
                     api_key = os.getenv('API_KEY_0'),
