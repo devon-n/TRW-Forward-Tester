@@ -70,6 +70,7 @@ def execute_order(data):
         order_type = data.get('order_type', 'PAPER').upper()  # Default to paper trading
         order_price = data['strategy']['order_price']
         order_id = data['strategy']['order_id']
+        strategy_name = data['strategyName']
         print(f"Preparing order {order_type} - {side} {quantity} {ticker} with leverage {leverage}")
 
         # Update min qty and precision
@@ -87,11 +88,90 @@ def execute_order(data):
         if order_type == "REAL":
 
             # Initialize Bybit HTTP with environment variables
-            session = HTTP(
-                testnet = False,
-                api_key = os.getenv('API_KEY'),
-                api_secret = os.getenv('API_SECRET'),
-            )
+            if strategy_name == "BTCUSDT 1D MACD Confirmation (1D)"
+                session = HTTP(
+                    testnet = False,
+                    api_key = os.getenv('API_KEY_0'),
+                    api_secret = os.getenv('API_SECRET_0'),
+                )
+            if strategy_name == "BTCUSDT 15m Impulse BoS Wick (Short) (Tue)"
+                session = HTTP(
+                    testnet = False,
+                    api_key = os.getenv('API_KEY_1'),
+                    api_secret = os.getenv('API_SECRET_1'),
+                )
+            if strategy_name == "BTCUSDT 15m Impulsive BoS (Short) (Tue/Fri)"
+                session = HTTP(
+                    testnet = False,
+                    api_key = os.getenv('API_KEY_2'),
+                    api_secret = os.getenv('API_SECRET_2'),
+                )
+            if strategy_name == "BTCUSDT 15m Reversal (Short) (Mon/Thu)"
+                session = HTTP(
+                    testnet = False,
+                    api_key = os.getenv('API_KEY_3'),
+                    api_secret = os.getenv('API_SECRET_3'),
+                )
+            if strategy_name == "BTCUSDT 15m Daily Open (Short) (Wed/Thu)"
+                session = HTTP(
+                    testnet = False,
+                    api_key = os.getenv('API_KEY_4'),
+                    api_secret = os.getenv('API_SECRET_4'),
+                )
+            if strategy_name == "BTCUSDT 15m Impulse BoS Wick (Long) (Mon/Tue/Thu)"
+                session = HTTP(
+                    testnet = False,
+                    api_key = os.getenv('API_KEY_5'),
+                    api_secret = os.getenv('API_SECRET_5'),
+                )
+            if strategy_name ==  "BTCUSDT 15m MACD Confirmation (Long) (ALL)"
+                session = HTTP(
+                    testnet = False,
+                    api_key = os.getenv('API_KEY_6'),
+                    api_secret = os.getenv('API_SECRET_6'),
+                )
+            if strategy_name ==  "BTCUSDT 15m Impulsive BoS (Long) (Mon/Tue/Wed)"
+                session = HTTP(
+                    testnet = False,
+                    api_key = os.getenv('API_KEY_7'),
+                    api_secret = os.getenv('API_SECRET_7'),
+                )
+            if strategy_name ==  "BTCUSDT 15m Asia Open (Long) (Mon/Sun)"
+                session = HTTP(
+                    testnet = False,
+                    api_key = os.getenv('API_KEY_8'),
+                    api_secret = os.getenv('API_SECRET_8'),
+                )
+            if strategy_name ==  "BTCUSDT 15m London Open (Long) (Mon,Tue,Thu,Fri)"
+                session = HTTP(
+                    testnet = False,
+                    api_key = os.getenv('API_KEY_9'),
+                    api_secret = os.getenv('API_SECRET_9'),
+                )
+            if strategy_name ==  "BTCUSDT 15m Reversal (Long) (Mon/Tue)"
+                session = HTTP(
+                    testnet = False,
+                    api_key = os.getenv('API_KEY_10'),
+                    api_secret = os.getenv('API_SECRET_10'),
+                )
+            if strategy_name ==  "BTCUSDT 15m BoS Retest in Trend (Long) (Mon/Fri/Sat/Sun)"
+                session = HTTP(
+                    testnet = False,
+                    api_key = os.getenv('API_KEY_11'),
+                    api_secret = os.getenv('API_SECRET_11'),
+                )
+            if strategy_name ==  "BTCUSDT 15m NY Open (Long) (Mon/Tue/Sun)"
+                session = HTTP(
+                    testnet = False,
+                    api_key = os.getenv('API_KEY_12'),
+                    api_secret = os.getenv('API_SECRET_12'),
+                )
+            if strategy_name ==  "BTCUSDT 15m Daily Open (Long) (Mon/Wed)"
+                session = HTTP(
+                    testnet = False,
+                    api_key = os.getenv('API_KEY_13'),
+                    api_secret = os.getenv('API_SECRET_13'),
+                )
             # Initialize Binance client with environment variables
             #client = UMFutures(os.getenv('API_KEY'), os.getenv('API_SECRET'))
             #client.futures_change_leverage(symbol=ticker, leverage=leverage)
