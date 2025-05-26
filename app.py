@@ -274,7 +274,7 @@ def execute_order(data):
                     qty = quantity,
                     price = str(float(order_price)-0.01)
                     )
-                if stop_loss is not None:
+                if stop_loss != "na":
                     order_params["stopLoss"] = stop_loss
                 order_response = session.place_order(**order_params)
             if side == "Sell":
@@ -286,7 +286,7 @@ def execute_order(data):
                     qty = quantity,
                     price = str(float(order_price)-0.01)
                     )
-                if stop_loss is not None:
+                if stop_loss != "na":
                     order_params["stopLoss"] = stop_loss
                 order_response = session.place_order(**order_params)
             
