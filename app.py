@@ -69,7 +69,9 @@ def execute_order(data):
         quantity = data['strategy']['order_contracts']
         ticker = data['ticker']
         
-        leverage, stop_loss = data.get('alert_messag').split(",")
+        leverage, stop_loss = data.get('alert_message').split(",")
+        print(f"leverage= {leverage}")
+        print(f"stopLoss= {stop_loss}")
         #leverage = int(data.get('leverage', 0))  # Default leverage to 0 if not provided
         order_type = data.get('order_type', 'PAPER').upper()  # Default to paper trading
         order_price = data['strategy']['order_price']
