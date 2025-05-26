@@ -63,6 +63,8 @@ def record_trade(data, order_response):
 def execute_order(data):
     """Executes a real Binance order or simulates it for paper trading."""
     try:
+        print(f"\nSending Order: {json.dumps(data)}\n")
+        
         side = data['strategy']['order_action'][0].upper() + data['strategy']['order_action'][1:]
         quantity = data['strategy']['order_contracts']
         ticker = data['ticker']
