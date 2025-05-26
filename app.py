@@ -66,7 +66,14 @@ def execute_order(data):
         side = data['strategy']['order_action'][0].upper() + data['strategy']['order_action'][1:]
         quantity = data['strategy']['order_contracts']
         ticker = data['ticker']
-        leverage = data['leverage']
+        
+        alert_msg_raw = data.get('alert_message', '{}')
+        try:
+            alert_msg_parsed = json.loads(alert_msg_raw)
+        except json.JSONDecodeError:
+            alert_msg_parsed = {}
+        leverage = alert_msg_parsed.get('leverage')
+        stop_loss = alert_msg_parsed.get('stop_loss') # Can be None
         #leverage = int(data.get('leverage', 0))  # Default leverage to 0 if not provided
         order_type = data.get('order_type', 'PAPER').upper()  # Default to paper trading
         order_price = data['strategy']['order_price']
@@ -263,41 +270,29 @@ def execute_order(data):
             #client.futures_change_margin_type(symbol=ticker, marginType="ISOLATED")
             print(f"\nSending Order: {json.dumps(data)}\n")
             if side == "Buy":
-                if order_id == "SL":
-                    order_response = session.place_order(
-                        category = "linear",
-                        symbol = ticker,
-                        side = side,
-                        orderType = "Market",
-                        qty = quantity,
+                order_params = session.place_order(
+                    category = "linear",
+                    symbol = ticker,
+                    side = side,
+                    orderType = "Limit",
+                    qty = quantity,
+                    price = str(float(order_price)-0.01)
                     )
-                else:
-                    order_response = session.place_order(
-                        category = "linear",
-                        symbol = ticker,
-                        side = side,
-                        orderType = "Limit",
-                        qty = quantity,
-                        price = str(float(order_price)-0.01)
-                     )
+                if stop_loss is not None:
+                    order_params["stopLoss"] = stop_loss
+                order_response = session.place_order(**order_params)
             if side == "Sell":
-                if order_id == "SL":
-                    order_response = session.place_order(
-                        category = "linear",
-                        symbol = ticker,
-                        side = side,
-                        orderType = "Market",
-                        qty = quantity,
+                order_params = session.place_order(
+                    category = "linear",
+                    symbol = ticker,
+                    side = side,
+                    orderType = "Limit",
+                    qty = quantity,
+                    price = str(float(order_price)-0.01)
                     )
-                else:
-                    order_response = session.place_order(
-                        category = "linear",
-                        symbol = ticker,
-                        side = side,
-                        orderType = "Limit",
-                        qty = quantity,
-                        price = str(float(order_price)+0.01)
-                     )
+                if stop_loss is not None:
+                    order_params["stopLoss"] = stop_loss
+                order_response = session.place_order(**order_params)
             
             #order_response = client.new_order(
             #    symbol=ticker,
