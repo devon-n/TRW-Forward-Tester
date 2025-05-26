@@ -69,13 +69,7 @@ def execute_order(data):
         quantity = data['strategy']['order_contracts']
         ticker = data['ticker']
         
-        alert_msg_raw = data.get('alert_message', '{}')
-        try:
-            alert_msg_parsed = json.loads(alert_msg_raw)
-        except json.JSONDecodeError:
-            alert_msg_parsed = {}
-        leverage = alert_msg_parsed.get('leverage')
-        stop_loss = alert_msg_parsed.get('stop_loss') # Can be None
+        leverage, stop_loss = alert_message.split(",")
         #leverage = int(data.get('leverage', 0))  # Default leverage to 0 if not provided
         order_type = data.get('order_type', 'PAPER').upper()  # Default to paper trading
         order_price = data['strategy']['order_price']
