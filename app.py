@@ -267,26 +267,26 @@ def execute_order(data):
             #client.futures_change_margin_type(symbol=ticker, marginType="ISOLATED")
             print(f"\nSending Order: {json.dumps(data)}\n")
             if side == "Buy":
-                order_params = session.place_order(
+                order_params = {
                     category = "linear",
                     symbol = ticker,
                     side = side,
                     orderType = "Limit",
                     qty = quantity,
                     price = str(float(order_price)-0.01)
-                    )
+                }
                 if stop_loss != "na":
                     order_params["stopLoss"] = stop_loss
                 order_response = session.place_order(**order_params)
             if side == "Sell":
-                order_params = session.place_order(
+                order_params = {
                     category = "linear",
                     symbol = ticker,
                     side = side,
                     orderType = "Limit",
                     qty = quantity,
                     price = str(float(order_price)-0.01)
-                    )
+                }
                 if stop_loss != "na":
                     order_params["stopLoss"] = stop_loss
                 order_response = session.place_order(**order_params)
