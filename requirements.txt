@@ -9,3 +9,6 @@ gunicorn==22.0.0
 dnspython==2.6.1
 binance-futures-connector==4.0.0
 streamlit
+pybit
+gspread
+oauth2client

@@ -18,7 +18,6 @@ app = Flask(__name__)
 def get_whitelisted_ips():
     return set(os.environ.get('WHITELISTED_IPS', '').split(','))
 
-
 # Decorator to restrict access to whitelisted IPs only
 def whitelist_ip(func):
     def wrapper(*args, **kwargs):
@@ -29,7 +28,6 @@ def whitelist_ip(func):
             message = f"Access denied: Your IP {real_ip} is not allowed."
             abort(403, description=message)
         return func(*args, **kwargs)
-
     return wrapper
 
 
@@ -37,7 +35,6 @@ def whitelist_ip(func):
 mongo_client = MongoClient(os.getenv('MONGO_URI'))
 db = mongo_client.trading
 trades_collection = db.trades
-
 
 def record_trade(data, order_response):
     """Records trade to MongoDB with strategy information."""
@@ -65,12 +62,10 @@ def record_trade(data, order_response):
     except Exception as e:
         print(f"Failed Order: An exception occurred: {e}")
 
-
 def execute_order(data):
     """Executes a real Binance order or simulates it for paper trading."""
     # print(f"\nOrder: {json.dumps(data)}\n")
     try:
-
         side = data['strategy']['order_action'][0].upper() + data['strategy']['order_action'][1:]
         quantity = data['strategy']['order_contracts']
         ticker = data['ticker']
@@ -424,18 +419,16 @@ def execute_order(data):
 
         else:
             print(f"Simulated paper order: {order_type} - {side} {quantity} {ticker}")
-        record_trade(data, None)
+            record_trade(data, None)
         return True
     except Exception as e:
         record_trade(data, "Failed Real Order?")
         print(f"Failed Order: An exception occurred: {e}")
         return False
 
-
 @app.route('/')
 def welcome():
     return ""
-
 
 @app.route('/webhook', methods=['POST'])
 @whitelist_ip
@@ -453,7 +446,6 @@ def webhook():
         return jsonify({"code": "success", "message": "Order executed"})
     else:
         return jsonify({"code": "error", "message": "Order failed"})
-
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
