@@ -28,11 +28,6 @@ def whitelist_ip(func):
         return func(*args, **kwargs)
     return wrapper
 
-print("=================================")
-api_key = os.getenv("API_KEY")
-api_secret = os.getenv("API_SECRET")
-print("apikey", api_key)
-print("api_secret", api_secret)
 
 # Connect to MongoDB
 mongo_client = MongoClient(os.getenv('MONGO_URI'))
@@ -89,9 +84,7 @@ def execute_order(data):
         if order_type == "REAL":
 
             # Initialize Binance client with environment variables
-            api_key = os.getenv("API_KEY")
-            api_secret = os.getenv("API_SECRET")
-            client = UMFutures(api_key, api_secret)
+            client = UMFutures(os.getenv('API_KEY'), os.getenv('API_SECRET'))
             # client.futures_change_leverage(symbol=ticker, leverage=leverage)
             # client.futures_change_margin_type(symbol=ticker, marginType="ISOLATED")
             print(f"\nSending Order: {json.dumps(data)}\n")
