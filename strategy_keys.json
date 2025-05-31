@@ -35,20 +35,32 @@
     "api_key": "API_KEY_6",
     "api_secret": "API_SECRET_6"
   },
-  "BTCUSDT 1h Structure Flip (Short) (Mon)": {
+  "BTCUSDT 15m Impulsive BoS (Long) (Mon/Tue/Wed)": {
     "api_key": "API_KEY_7",
     "api_secret": "API_SECRET_7"
   },
-  "BTCUSDT 15m Trend Continuation (Short) (Wed/Fri)": {
+  "BTCUSDT 15m Asia Open (Long) (Mon/Sun)": {
     "api_key": "API_KEY_8",
     "api_secret": "API_SECRET_8"
   },
-  "BTCUSDT 1h Breaker Retest (Short) (Tue/Fri)": {
+  "BTCUSDT 15m London Open (Long) (Mon,Tue,Thu,Fri)": {
     "api_key": "API_KEY_9",
     "api_secret": "API_SECRET_9"
   },
-  "BTCUSDT 15m Displacement Retest (Short) (Thu/Fri)": {
+  "BTCUSDT 15m Reversal (Long) (Mon/Tue)": {
     "api_key": "API_KEY_10",
     "api_secret": "API_SECRET_10"
+  },
+  "BTCUSDT 15m BoS Retest in Trend (Long) (Mon/Fri/Sat/Sun)": {
+    "api_key": "API_KEY_11",
+    "api_secret": "API_SECRET_11"
+  },
+  "BTCUSDT 15m NY Open (Long) (Mon/Tue/Sun)": {
+    "api_key": "API_KEY_12",
+    "api_secret": "API_SECRET_12"
+  },
+  "BTCUSDT 15m Daily Open (Long) (Mon/Wed)": {
+    "api_key": "API_KEY_13",
+    "api_secret": "API_SECRET_13"
   }
 }
