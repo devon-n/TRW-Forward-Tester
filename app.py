@@ -63,7 +63,7 @@ def record_trade(data, order_response):
         print(f"Failed Order: An exception occurred: {e}")
 
 def execute_order(data):
-    """Executes a real Binance order or simulates it for paper trading."""
+    """Executes a real Bybit order or simulates it for paper trading."""
     # print(f"\nOrder: {json.dumps(data)}\n")
     try:
         side = data['strategy']['order_action'][0].upper() + data['strategy']['order_action'][1:]
@@ -378,6 +378,7 @@ def execute_order(data):
                     accountType="UNIFIED",
                     coin="USDT",
                 )
+                print(f"Rebalancing: {balance_response}")
                 balance = float(balance_response["totalEquity"])
                 floor_balance = floor(balance)
                 target_capital = 500
