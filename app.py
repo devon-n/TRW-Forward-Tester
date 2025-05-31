@@ -65,8 +65,6 @@ def record_trade(data, order_response):
 def execute_order(data):
     """Executes a real Bybit order or simulates it for paper trading."""
     # print(f"\nOrder: {json.dumps(data)}\n")
-    with open("strategy_keys.json", "r") as f:
-        strategy_keys = json.load(f)
     try:
         side = data['strategy']['order_action'][0].upper() + data['strategy']['order_action'][1:]
         quantity = data['strategy']['order_contracts']
@@ -94,6 +92,8 @@ def execute_order(data):
 
         if order_type == "REAL":
             # Initialize Bybit HTTP with environment variables
+            with open("strategy_keys.json", "r") as f:
+                strategy_keys = json.load(f)
             if strategy_name in strategy_keys:
                 key_entry = strategy_keys[strategy_name]
                 api_key_env = key_entry['api_key']
