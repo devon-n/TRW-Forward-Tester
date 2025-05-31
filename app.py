@@ -65,6 +65,8 @@ def record_trade(data, order_response):
 def execute_order(data):
     """Executes a real Bybit order or simulates it for paper trading."""
     # print(f"\nOrder: {json.dumps(data)}\n")
+    with open("strategy_keys.json", "r") as f:
+        strategy_keys = json.load(f)
     try:
         side = data['strategy']['order_action'][0].upper() + data['strategy']['order_action'][1:]
         quantity = data['strategy']['order_contracts']
@@ -92,11 +94,15 @@ def execute_order(data):
 
         if order_type == "REAL":
             # Initialize Bybit HTTP with environment variables
-            if strategy_name == "BTCUSDT 1D MACD Confirmation (1D)" or strategy_name == "BTCUSDT 1D Peako Bottom Bidding (1D)" or "Testing":
+            if strategy_name in strategy_keys:
+                key_entry = strategy_keys[strategy_name]
+                api_key_env = key_entry['api_key']
+                api_secret_env = key_entry['api_secret']
+
                 session = HTTP(
                     testnet=False,
-                    api_key=os.getenv('API_KEY_0'),
-                    api_secret=os.getenv('API_SECRET_0'),
+                    api_key=os.getenv(api_key_env),
+                    api_secret=os.getenv(api_secret_env),
                 )
                 key_information = session.get_api_key_information()
                 uid = key_information['result']['id']
@@ -109,233 +115,11 @@ def execute_order(data):
                     )
                 except:
                     print("Leverage already set at level.")
-            if strategy_name == "BTCUSDT 15m Impulse BoS Wick (Short) (Tue)":
-                session = HTTP(
-                    testnet=False,
-                    api_key=os.getenv('API_KEY_1'),
-                    api_secret=os.getenv('API_SECRET_1'),
-                )
-                key_information = session.get_api_key_information()
-                uid = key_information['result']['id']
-                try:
-                    session.set_leverage(
-                        category="linear",
-                        symbol=ticker,
-                        buyLeverage=leverage,
-                        sellLeverage=leverage,
-                    )
-                except:
-                    print("Leverage already set at level.")
-            if strategy_name == "BTCUSDT 15m Impulsive BoS (Short) (Tue/Fri)":
-                session = HTTP(
-                    testnet=False,
-                    api_key=os.getenv('API_KEY_2'),
-                    api_secret=os.getenv('API_SECRET_2'),
-                )
-                key_information = session.get_api_key_information()
-                uid = key_information['result']['id']
-                try:
-                    session.set_leverage(
-                        category="linear",
-                        symbol=ticker,
-                        buyLeverage=leverage,
-                        sellLeverage=leverage,
-                    )
-                except:
-                    print("Leverage already set at level.")
-            if strategy_name == "BTCUSDT 15m Reversal (Short) (Mon/Thu)":
-                session = HTTP(
-                    testnet=False,
-                    api_key=os.getenv('API_KEY_3'),
-                    api_secret=os.getenv('API_SECRET_3'),
-                )
-                key_information = session.get_api_key_information()
-                uid = key_information['result']['id']
-                try:
-                    session.set_leverage(
-                        category="linear",
-                        symbol=ticker,
-                        buyLeverage=leverage,
-                        sellLeverage=leverage,
-                    )
-                except:
-                    print("Leverage already set at level.")
-            if strategy_name == "BTCUSDT 15m Daily Open (Short) (Wed/Thu)":
-                session = HTTP(
-                    testnet=False,
-                    api_key=os.getenv('API_KEY_4'),
-                    api_secret=os.getenv('API_SECRET_4'),
-                )
-                key_information = session.get_api_key_information()
-                uid = key_information['result']['id']
-                try:
-                    session.set_leverage(
-                        category="linear",
-                        symbol=ticker,
-                        buyLeverage=leverage,
-                        sellLeverage=leverage,
-                    )
-                except:
-                    print("Leverage already set at level.")
-            if strategy_name == "BTCUSDT 15m Impulse BoS Wick (Long) (Mon/Tue/Thu)":
-                session = HTTP(
-                    testnet=False,
-                    api_key=os.getenv('API_KEY_5'),
-                    api_secret=os.getenv('API_SECRET_5'),
-                )
-                key_information = session.get_api_key_information()
-                uid = key_information['result']['id']
-                try:
-                    session.set_leverage(
-                        category="linear",
-                        symbol=ticker,
-                        buyLeverage=leverage,
-                        sellLeverage=leverage,
-                    )
-                except:
-                    print("Leverage already set at level.")
-            if strategy_name == "BTCUSDT 15m MACD Confirmation (Long) (ALL)":
-                session = HTTP(
-                    testnet=False,
-                    api_key=os.getenv('API_KEY_6'),
-                    api_secret=os.getenv('API_SECRET_6'),
-                )
-                key_information = session.get_api_key_information()
-                uid = key_information['result']['id']
-                try:
-                    session.set_leverage(
-                        category="linear",
-                        symbol=ticker,
-                        buyLeverage=leverage,
-                        sellLeverage=leverage,
-                    )
-                except:
-                    print("Leverage already set at level.")
-            if strategy_name == "BTCUSDT 15m Impulsive BoS (Long) (Mon/Tue/Wed)":
-                session = HTTP(
-                    testnet=False,
-                    api_key=os.getenv('API_KEY_7'),
-                    api_secret=os.getenv('API_SECRET_7'),
-                )
-                key_information = session.get_api_key_information()
-                uid = key_information['result']['id']
-                try:
-                    session.set_leverage(
-                        category="linear",
-                        symbol=ticker,
-                        buyLeverage=leverage,
-                        sellLeverage=leverage,
-                    )
-                except:
-                    print("Leverage already set at level.")
-            if strategy_name == "BTCUSDT 15m Asia Open (Long) (Mon/Sun)":
-                session = HTTP(
-                    testnet=False,
-                    api_key=os.getenv('API_KEY_8'),
-                    api_secret=os.getenv('API_SECRET_8'),
-                )
-                key_information = session.get_api_key_information()
-                uid = key_information['result']['id']
-                try:
-                    session.set_leverage(
-                        category="linear",
-                        symbol=ticker,
-                        buyLeverage=leverage,
-                        sellLeverage=leverage,
-                    )
-                except:
-                    print("Leverage already set at level.")
-            if strategy_name == "BTCUSDT 15m London Open (Long) (Mon,Tue,Thu,Fri)":
-                session = HTTP(
-                    testnet=False,
-                    api_key=os.getenv('API_KEY_9'),
-                    api_secret=os.getenv('API_SECRET_9'),
-                )
-                key_information = session.get_api_key_information()
-                uid = key_information['result']['id']
-                try:
-                    session.set_leverage(
-                        category="linear",
-                        symbol=ticker,
-                        buyLeverage=leverage,
-                        sellLeverage=leverage,
-                    )
-                except:
-                    print("Leverage already set at level.")
-            if strategy_name == "BTCUSDT 15m Reversal (Long) (Mon/Tue)":
-                session = HTTP(
-                    testnet=False,
-                    api_key=os.getenv('API_KEY_10'),
-                    api_secret=os.getenv('API_SECRET_10'),
-                )
-                key_information = session.get_api_key_information()
-                uid = key_information['result']['id']
-                try:
-                    session.set_leverage(
-                        category="linear",
-                        symbol=ticker,
-                        buyLeverage=leverage,
-                        sellLeverage=leverage,
-                    )
-                except:
-                    print("Leverage already set at level.")
-            if strategy_name == "BTCUSDT 15m BoS Retest in Trend (Long) (Mon/Fri/Sat/Sun)":
-                session = HTTP(
-                    testnet=False,
-                    api_key=os.getenv('API_KEY_11'),
-                    api_secret=os.getenv('API_SECRET_11'),
-                )
-                key_information = session.get_api_key_information()
-                uid = key_information['result']['id']
-                try:
-                    session.set_leverage(
-                        category="linear",
-                        symbol=ticker,
-                        buyLeverage=leverage,
-                        sellLeverage=leverage,
-                    )
-                except:
-                    print("Leverage already set at level.")
-            if strategy_name == "BTCUSDT 15m NY Open (Long) (Mon/Tue/Sun)":
-                session = HTTP(
-                    testnet=False,
-                    api_key=os.getenv('API_KEY_12'),
-                    api_secret=os.getenv('API_SECRET_12'),
-                )
-                key_information = session.get_api_key_information()
-                uid = key_information['result']['id']
-                try:
-                    session.set_leverage(
-                        category="linear",
-                        symbol=ticker,
-                        buyLeverage=leverage,
-                        sellLeverage=leverage,
-                    )
-                except:
-                    print("Leverage already set at level.")
-            if strategy_name == "BTCUSDT 15m Daily Open (Long) (Mon/Wed)":
-                session = HTTP(
-                    testnet=False,
-                    api_key=os.getenv('API_KEY_13'),
-                    api_secret=os.getenv('API_SECRET_13'),
-                )
-                key_information = session.get_api_key_information()
-                uid = key_information['result']['id']
-                try:
-                    session.set_leverage(
-                        category="linear",
-                        symbol=ticker,
-                        buyLeverage=leverage,
-                        sellLeverage=leverage,
-                    )
-                except:
-                    print("Leverage already set at level.")
-            # Initialize Binance client with environment variables
-            # client = UMFutures(os.getenv('API_KEY'), os.getenv('API_SECRET'))
-            # client.futures_change_leverage(symbol=ticker, leverage=leverage)
-            # client.futures_change_margin_type(symbol=ticker, marginType="ISOLATED")
-            print(f"\nSending Order: {json.dumps(data)}\n")
+            else:
+                print(f"Strategy '{strategy_name}' not found in strategy_keys.json.")
+
             if order_id != "SL":
+                print(f"\nSending Order: {json.dumps(data)}\n")
                 if side == "Buy":
                     order_params = {
                         "category": "linear",
@@ -360,13 +144,6 @@ def execute_order(data):
                     if stop_loss != "na":
                         order_params["stopLoss"] = stop_loss
                     order_response = session.place_order(**order_params)
-
-                # order_response = client.new_order(
-                #    symbol=ticker,
-                #    side=side,
-                #    type="MARKET",
-                #    quantity=quantity
-                #    )
                 print(f"Real order executed: {order_type} - {side} {quantity} {ticker} | {order_response}")
 
                 # Get order price from trade response
