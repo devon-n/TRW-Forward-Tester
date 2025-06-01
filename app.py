@@ -10,6 +10,7 @@ from functools import lru_cache
 from config import minQtyDict, precisionDecimalDict
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
+from datetime import datetime
 
 load_dotenv()
 
@@ -157,22 +158,52 @@ def execute_order(data):
 
             if stop_loss == "na": #SL or TP order
                 #Check Recent Trade Info And Log It On Google Sheets
+                close_pnl = session.get_closed_pnl(category="linear",limit=1)
+                print(f"Closed Pnl: {close_pnl}")
+                pnl_symbol = close_pnl["result"]["list"]["symbol"]
+                pnl_orderType = close_pnl["result"]["list"]["orderType"]
+                pnl_leverage = close_pnl["result"]["list"]["leverage"]
+                pnl_updatedTime = close_pnl["result"]["list"]["updatedTime"]
+                pnl_side = close_pnl["result"]["list"]["side"]
+                pnl_orderId = close_pnl["result"]["list"]["orderId"]
+                pnl_closedPnl = close_pnl["result"]["list"]["closedPnl"]
+                pnl_avgEntryPrice = close_pnl["result"]["list"]["avgEntryPrice"]
+                pnl_qty = close_pnl["result"]["list"]["qty"]
+                pnl_cumEntryValue = close_pnl["result"]["list"]["cumEntryValue"]
+                pnl_createdTime = close_pnl["result"]["list"]["createdTime"]
+                pnl_orderPrice = close_pnl["result"]["list"]["orderPrice"]
+                pnl_closedSize = close_pnl["result"]["list"]["closedSize"]
+                pnl_avgExitPrice = close_pnl["result"]["list"]["avgExitPrice"]
+                pnl_execType = close_pnl["result"]["list"]["execType"]
+                pnl_fillCount = close_pnl["result"]["list"]["fillCount"]
+                pnl_cumExitValue = close_pnl["result"]["list"]["cumExitValue"]
+                current_date = datetime. datetime. now(datetime. UTC).strftime("%d/%m/%Y")
+                current_time = datetime. datetime. now(datetime. UTC).strftime("%H:%M:%S")
                 # Open the spreadsheet and worksheet
                 spreadsheet = client.open("Live Trading")
                 sheet = spreadsheet.worksheet("Automated Trades")
 
                 # Sample data to append
                 trade_data = [
-                    "2025-05-22",  # date
-                    "BTCUSDT",  # symbol
-                    65400,  # entry
-                    66000,  # exit
-                    0.01,  # quantity
-                    "Long",  # direction
-                    1.23,  # fees in USD
-                    -0.1,  # funding
-                    580,  # BNB price at time
-                    2.0  # RR
+                    current_date,  # date
+                    current_time,
+                    pnl_symbol,  # symbol
+                    pnl_orderType,
+                    pnl_leverage,
+                    pnl_updatedTime,
+                    pnl_side, # direction
+                    pnl_orderId,
+                    pnl_closedPnl,
+                    pnl_avgEntryPrice, # entry
+                    pnl_qty, # quantity
+                    pnl_cumEntryValue,
+                    pnl_createdTime,
+                    pnl_orderPrice,
+                    pnl_closedSize,
+                    pnl_avgExitPrice, # exit
+                    pnl_execType,
+                    pnl_fillCount,
+                    pnl_cumExitValue
                 ]
                 try:
                     sheet.append_row(trade_data)
