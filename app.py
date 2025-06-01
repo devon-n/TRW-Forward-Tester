@@ -8,6 +8,8 @@ from pymongo import MongoClient  # type: ignore
 from dotenv import load_dotenv
 from functools import lru_cache
 from config import minQtyDict, precisionDecimalDict
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
 
 load_dotenv()
 
@@ -35,6 +37,10 @@ def whitelist_ip(func):
 mongo_client = MongoClient(os.getenv('MONGO_URI'))
 db = mongo_client.trading
 trades_collection = db.trades
+# Connect to Google Sheets
+scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+creds = ServiceAccountCredentials.from_json_keyfile_name("service_account.json", scope)
+client = gspread.authorize(creds)
 
 def record_trade(data, order_response):
     """Records trade to MongoDB with strategy information."""
@@ -150,6 +156,30 @@ def execute_order(data):
                 record_trade(data, order_response)
 
             if stop_loss == "na": #SL or TP order
+                #Check Recent Trade Info And Log It On Google Sheets
+                # Open the spreadsheet and worksheet
+                spreadsheet = client.open("Live Trading")
+                sheet = spreadsheet.worksheet("Automated Trades")
+
+                # Sample data to append
+                trade_data = [
+                    "2025-05-22",  # date
+                    "BTCUSDT",  # symbol
+                    65400,  # entry
+                    66000,  # exit
+                    0.01,  # quantity
+                    "Long",  # direction
+                    1.23,  # fees in USD
+                    -0.1,  # funding
+                    580,  # BNB price at time
+                    2.0  # RR
+                ]
+                try:
+                    sheet.append_row(trade_data)
+                    print(f"Logged Trade Data: {trade_data}")
+                except Exception as e:
+                    print(f"Failed Logging Trade: {e}")
+
                 # Better if confirm no trades open.
                 balance_response = session.get_wallet_balance(
                     accountType="UNIFIED",
