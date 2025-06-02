@@ -161,7 +161,7 @@ def execute_order(data):
             if stop_loss == "na": #SL or TP order
                 open_orders = session.get_open_orders(category="linear",limit=1)
                 open_order_id = open_orders["result"]["list"][0]["orderId"]
-                while open_order_id != "" #Position not filled
+                while open_order_id != "": #Position not filled
                     print("Position still open. Waiting 30 seconds...")
                     time.sleep(30)
 
