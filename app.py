@@ -88,7 +88,7 @@ def execute_order(data):
         # Update min qty and precision
         ticker = ticker.replace('.P', '')
         ticker = ticker + "T" if ticker.endswith("USD") else ticker
-        print(f"NEW ALERT\n<<{strategy_name}>> -{order_type} - {side} {quantity} {ticker} with leverage {leverage}")
+        print(f"NEW ALERT\n<<{strategy_name}>>\n-{order_type} - {side} {quantity} {ticker} with leverage {leverage}")
 
         if ticker in minQtyDict:
             if float(quantity) < float(minQtyDict[ticker]):
@@ -159,15 +159,22 @@ def execute_order(data):
                 record_trade(data, order_response)
 
             if stop_loss == "na": #SL or TP order
-                #Check if all Trades are Executed
-                open_orders = session.get_open_orders(category="linear",limit=1)
-                open_order_id = open_orders["result"]["list"][0]["orderId"]
-                while open_order_id != "": #Position not filled
-                    print("Position still open. Waiting 30 seconds...")
-                    time.sleep(30)
+                while True:
+                    # Check if all Trades are Executed
+                    open_orders = session.get_open_orders(category="linear", limit=1)
+                    open_order_id = open_orders["result"]["list"][0]["orderId"]
+
+                    if open_order_id == "": #No open positions
+                        break
+                    print("Position still open. Waiting 1 seconds...")
+                    time.sleep(1)
 
                 #Check Recent Trade Info And Log It On Google Sheets
-                close_pnl = session.get_closed_pnl(category="linear",limit=1)
+                close_pnl = session.get_closed_pnl(
+                    category="linear",
+                    symbol=ticker,
+                    limit=1,
+                )
                 last_pnl = close_pnl["result"]["list"][0]  # Access the first item in the list
                 print(f"Closed Pnl: {last_pnl}")
                 pnl_symbol = last_pnl["symbol"]
