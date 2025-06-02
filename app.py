@@ -79,6 +79,7 @@ def execute_order(data):
         quantity = data['strategy']['order_contracts']
         ticker = data['ticker']
 
+        timeframe = data['timeframe']
         leverage, stop_loss = data.get('alert_message').split(",")
         # leverage = int(data.get('leverage', 0))  # Default leverage to 0 if not provided
         order_type = data.get('order_type', 'PAPER').upper()  # Default to paper trading
@@ -122,8 +123,8 @@ def execute_order(data):
                         buyLeverage=leverage,
                         sellLeverage=leverage,
                     )
-                except:
-                    print("Leverage already set.")
+                except Exception as e:
+                    print("Error while setting leverage:", e)
             else:
                 print(f"Strategy '{strategy_name}' not found in strategy_keys.json.")
 
@@ -156,7 +157,7 @@ def execute_order(data):
                 print(f"Real order executed: {order_type} - {side} {quantity} {ticker} | {order_response}")
 
                 # Get order price from trade response
-                record_trade(data, order_response)
+                #record_trade(data, order_response)
 
             if stop_loss == "na": #SL or TP order
                 while True:
@@ -202,6 +203,7 @@ def execute_order(data):
 
                 # Sample data to append
                 trade_data = [
+                    timeframe,
                     strategy_name,
                     current_date,  # date
                     current_time,
