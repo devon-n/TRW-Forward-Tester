@@ -218,7 +218,8 @@ def execute_order(data):
                     coin="USDT",
                 )
                 print(f"Rebalancing: {balance_response}")
-                balance = float(balance_response["totalEquity"])
+                balance_list = balance_response["result"]["list"][0]
+                balance = float(balance_list["totalEquity"])
                 floor_balance = floor(balance)
                 target_capital = 500
                 excess_capital = abs(floor_balance - target_capital)
