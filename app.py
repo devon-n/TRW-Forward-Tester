@@ -1,4 +1,5 @@
 import json
+import threading
 import uuid
 from math import floor
 import os
@@ -11,6 +12,7 @@ from config import minQtyDict, precisionDecimalDict
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime, timezone
+import time
 
 load_dotenv()
 
@@ -125,7 +127,7 @@ def execute_order(data):
             else:
                 print(f"Strategy '{strategy_name}' not found in strategy_keys.json.")
 
-            if order_id != "SL":
+            if order_id != "SL": # Entry or TP order
                 print(f"\nSending Order: {json.dumps(data)}\n")
                 if side == "Buy":
                     order_params = {
@@ -157,6 +159,12 @@ def execute_order(data):
                 record_trade(data, order_response)
 
             if stop_loss == "na": #SL or TP order
+                open_orders = session.get_open_orders(category="linear",limit=1)
+                open_order_id = open_orders["result"]["list"][0]["orderId"]
+                while open_order_id != "" #Position not filled
+                    print("Position still open. Waiting 30 seconds...")
+                    time.sleep(30)
+
                 #Check Recent Trade Info And Log It On Google Sheets
                 close_pnl = session.get_closed_pnl(category="linear",limit=1)
                 last_pnl = close_pnl["result"]["list"][0]  # Access the first item in the list
@@ -284,12 +292,8 @@ def webhook():
     # return jsonify({"code": "error", "message": "Invalid passphrase"}), 403
 
     # Execute or simulate the order
-    success = execute_order(data)
-
-    if success:
-        return jsonify({"code": "success", "message": "Order executed"})
-    else:
-        return jsonify({"code": "error", "message": "Order failed"})
+    order_thread = threading.Thread(target=execute_order,args=(data,))
+    order_thread.start()
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
