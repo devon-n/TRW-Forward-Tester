@@ -186,6 +186,7 @@ def execute_order(data):
 
                 # Sample data to append
                 trade_data = [
+                    strategy_name,
                     current_date,  # date
                     current_time,
                     pnl_symbol,  # symbol
