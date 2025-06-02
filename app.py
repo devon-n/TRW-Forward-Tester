@@ -295,6 +295,7 @@ def webhook():
     # Execute or simulate the order
     order_thread = threading.Thread(target=execute_order,args=(data,))
     order_thread.start()
+    return "Thread started."
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
