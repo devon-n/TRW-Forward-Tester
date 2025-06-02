@@ -250,7 +250,7 @@ def execute_order(data):
                             coin = "USDT",
                             amount = str(excess_capital),
                             fromMemberId = int(uid),
-                            toMemberId = int(os.environ.get('MAIN_UID')), #Main UID
+                            toMemberId = int(os.getenv('MAIN_UID')), #Main UID
                             fromAccountType = "UNIFIED",
                             toAccountType = "UNIFIED",
                         )
@@ -267,7 +267,7 @@ def execute_order(data):
                         main_balance = session.get_coin_balance(
                             accountType="UNIFIED",
                             coin="USDT",
-                            memberId=int(os.environ.get('MAIN_UID')),
+                            memberId=int(os.getenv('MAIN_UID')),
                         )
                         if float(main_balance['result']['balance']['transferBalance']) > excess_capital:
                             try:
@@ -275,7 +275,7 @@ def execute_order(data):
                                     transferId = str(uuid.uuid4()),
                                     coin = "USDT",
                                     amount = str(excess_capital),
-                                    fromMemberId = int(os.environ.get('MAIN_UID')),
+                                    fromMemberId = int(os.getenv('MAIN_UID')),
                                     toMemberId = int(uid),
                                     fromAccountType = "UNIFIED",
                                     toAccountType = "UNIFIED",
@@ -293,7 +293,7 @@ def execute_order(data):
             record_trade(data, None)
         return True
     except Exception as e:
-        record_trade(data, "Failed Real Order?")
+        #record_trade(data, "Failed Real Order?")
         print(f"Error while execute_order(): {e}")
         return False
 
