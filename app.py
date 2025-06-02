@@ -83,11 +83,11 @@ def execute_order(data):
         order_price = data['strategy']['order_price']
         order_id = data['strategy']['order_id']
         strategy_name = data['strategyName']
-        print(f"Preparing order {order_type} - {side} {quantity} {ticker} with leverage {leverage}")
-
         # Update min qty and precision
         ticker = ticker.replace('.P', '')
         ticker = ticker + "T" if ticker.endswith("USD") else ticker
+        print(f"NEW ALERT\n<<{strategy_name}>> -{order_type} - {side} {quantity} {ticker} with leverage {leverage}")
+
         if ticker in minQtyDict:
             if float(quantity) < float(minQtyDict[ticker]):
                 quantity = minQtyDict[ticker]
@@ -121,7 +121,7 @@ def execute_order(data):
                         sellLeverage=leverage,
                     )
                 except:
-                    print("Leverage already set at level.")
+                    print("Leverage already set.")
             else:
                 print(f"Strategy '{strategy_name}' not found in strategy_keys.json.")
 
@@ -159,24 +159,26 @@ def execute_order(data):
             if stop_loss == "na": #SL or TP order
                 #Check Recent Trade Info And Log It On Google Sheets
                 close_pnl = session.get_closed_pnl(category="linear",limit=1)
-                print(f"Closed Pnl: {close_pnl}")
-                pnl_symbol = close_pnl["result"]["list"]["symbol"]
-                pnl_orderType = close_pnl["result"]["list"]["orderType"]
-                pnl_leverage = close_pnl["result"]["list"]["leverage"]
-                pnl_updatedTime = close_pnl["result"]["list"]["updatedTime"]
-                pnl_side = close_pnl["result"]["list"]["side"]
-                pnl_orderId = close_pnl["result"]["list"]["orderId"]
-                pnl_closedPnl = close_pnl["result"]["list"]["closedPnl"]
-                pnl_avgEntryPrice = close_pnl["result"]["list"]["avgEntryPrice"]
-                pnl_qty = close_pnl["result"]["list"]["qty"]
-                pnl_cumEntryValue = close_pnl["result"]["list"]["cumEntryValue"]
-                pnl_createdTime = close_pnl["result"]["list"]["createdTime"]
-                pnl_orderPrice = close_pnl["result"]["list"]["orderPrice"]
-                pnl_closedSize = close_pnl["result"]["list"]["closedSize"]
-                pnl_avgExitPrice = close_pnl["result"]["list"]["avgExitPrice"]
-                pnl_execType = close_pnl["result"]["list"]["execType"]
-                pnl_fillCount = close_pnl["result"]["list"]["fillCount"]
-                pnl_cumExitValue = close_pnl["result"]["list"]["cumExitValue"]
+                last_pnl = close_pnl["result"]["list"][0]  # Access the first item in the list
+                print(f"Closed Pnl: {last_pnl}")
+                pnl_symbol = last_pnl["result"]["list"]["symbol"]
+                pnl_symbol = last_pnl["result"]["list"]["symbol"]
+                pnl_orderType = last_pnl["result"]["list"]["orderType"]
+                pnl_leverage = last_pnl["result"]["list"]["leverage"]
+                pnl_updatedTime = last_pnl["result"]["list"]["updatedTime"]
+                pnl_side = last_pnl["result"]["list"]["side"]
+                pnl_orderId = last_pnl["result"]["list"]["orderId"]
+                pnl_closedPnl = last_pnl["result"]["list"]["closedPnl"]
+                pnl_avgEntryPrice = last_pnl["result"]["list"]["avgEntryPrice"]
+                pnl_qty = last_pnl["result"]["list"]["qty"]
+                pnl_cumEntryValue = last_pnl["result"]["list"]["cumEntryValue"]
+                pnl_createdTime = last_pnl["result"]["list"]["createdTime"]
+                pnl_orderPrice = last_pnl["result"]["list"]["orderPrice"]
+                pnl_closedSize = last_pnl["result"]["list"]["closedSize"]
+                pnl_avgExitPrice = last_pnl["result"]["list"]["avgExitPrice"]
+                pnl_execType = last_pnl["result"]["list"]["execType"]
+                pnl_fillCount = last_pnl["result"]["list"]["fillCount"]
+                pnl_cumExitValue = last_pnl["result"]["list"]["cumExitValue"]
                 current_date = datetime. datetime. now(datetime. UTC).strftime("%d/%m/%Y")
                 current_time = datetime. datetime. now(datetime. UTC).strftime("%H:%M:%S")
                 # Open the spreadsheet and worksheet
@@ -276,7 +278,7 @@ def welcome():
 def webhook():
     """Handles incoming TradingView alerts via webhook and processes trades."""
     data = json.loads(request.data)
-    print(f"\n data: {data}\n")
+    #print(f"\n data: {data}\n")
     # if data['passphrase'] != os.getenv('WEBHOOK_PASSPHRASE'):
     # return jsonify({"code": "error", "message": "Invalid passphrase"}), 403
 
