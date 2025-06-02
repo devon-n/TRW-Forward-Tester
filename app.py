@@ -235,40 +235,49 @@ def execute_order(data):
                 excess_capital = abs(floor_balance - target_capital)
 
                 if floor_balance > target_capital: #Has Excess Capital
-                    session.create_universal_transfer(
-                        transferId = str(uuid.uuid4()),
-                        coin = "USDT",
-                        amount = str(excess_capital),
-                        fromMemberId = int(uid),
-                        toMemberId = int(os.environ.get('MAIN_UID')), #Main UID
-                        fromAccountType = "UNIFIED",
-                        toAccountType = "UNIFIED",
-                    )
-                    print(f"Profit Moved to Main Account from UID: {uid}")
-                if floor_balance < target_capital: #Needs More Capital
-                    session = HTTP(
-                        testnet=False,
-                        api_key=os.getenv('API_KEY_0'),
-                        api_secret=os.getenv('API_SECRET_0'),
-                    )
-                    main_balance = session.get_coin_balance(
-                        accountType="UNIFIED",
-                        coin="USDT",
-                        memberId=int(os.environ.get('MAIN_UID')),
-                    )
-                    if float(main_balance['result']['balance']['transferBalance']) > excess_capital:
+                    try:
                         session.create_universal_transfer(
                             transferId = str(uuid.uuid4()),
                             coin = "USDT",
                             amount = str(excess_capital),
-                            fromMemberId = int(os.environ.get('MAIN_UID')),
-                            toMemberId = int(uid),
+                            fromMemberId = int(uid),
+                            toMemberId = int(os.environ.get('MAIN_UID')), #Main UID
                             fromAccountType = "UNIFIED",
                             toAccountType = "UNIFIED",
                         )
-                        print(f"Loss Balance Filled from Main Account to UID: {uid}")
-                    else:
-                        print(f"Not enough balance in Main Account to fill Sub Account: {uid}")
+                        print(f"Profit Moved to Main Account from UID: {uid}")
+                    except Exception as e:
+                        print(f"Error while Line 239 Universal Transfer: {e}")
+                if floor_balance < target_capital: #Needs More Capital
+                    try:
+                        session = HTTP(
+                            testnet=False,
+                            api_key=os.getenv('API_KEY_0'),
+                            api_secret=os.getenv('API_SECRET_0'),
+                        )
+                        main_balance = session.get_coin_balance(
+                            accountType="UNIFIED",
+                            coin="USDT",
+                            memberId=int(os.environ.get('MAIN_UID')),
+                        )
+                        if float(main_balance['result']['balance']['transferBalance']) > excess_capital:
+                            try:
+                                session.create_universal_transfer(
+                                    transferId = str(uuid.uuid4()),
+                                    coin = "USDT",
+                                    amount = str(excess_capital),
+                                    fromMemberId = int(os.environ.get('MAIN_UID')),
+                                    toMemberId = int(uid),
+                                    fromAccountType = "UNIFIED",
+                                    toAccountType = "UNIFIED",
+                                )
+                                print(f"Loss Balance Filled from Main Account to UID: {uid}")
+                            except Exception as e:
+                                print(f"Error while Line 265 Universal Transfer: {e}")
+                        else:
+                            print(f"Not enough balance in Main Account to fill Sub Account: {uid}")
+                    except Exception as e:
+                        print(f"Error while Line 251 Universal Transfer: {e}")
 
         else:
             print(f"Simulated paper order: {order_type} - {side} {quantity} {ticker}")
