@@ -89,16 +89,16 @@ def execute_order(data):
         # Update min qty and precision
         ticker = ticker.replace('.P', '')
         ticker = ticker + "T" if ticker.endswith("USD") else ticker
-        print(f"NEW ALERT\n<<{strategy_name}>>\n-{order_type} - {side} {quantity} {ticker} with leverage {leverage}")
+        print(f"NEW ALERT\n<<{strategy_name}>>\n-{order_type}-\n{side} {quantity} {ticker} with {leverage}x")
 
-        if ticker in minQtyDict:
-            if float(quantity) < float(minQtyDict[ticker]):
-                quantity = minQtyDict[ticker]
+        #if ticker in minQtyDict:
+            #if float(quantity) < float(minQtyDict[ticker]):
+                #quantity = minQtyDict[ticker]
 
-        if ticker in precisionDecimalDict:
-            quantity = str(round(float(quantity), precisionDecimalDict[ticker]))
+        #if ticker in precisionDecimalDict:
+            #quantity = str(round(float(quantity), precisionDecimalDict[ticker]))
 
-        data['strategy']['order_contracts'] = quantity
+        #data['strategy']['order_contracts'] = quantity
 
         if order_type == "REAL":
             # Initialize Bybit HTTP with environment variables
@@ -114,8 +114,6 @@ def execute_order(data):
                     api_key=os.getenv(api_key_env),
                     api_secret=os.getenv(api_secret_env),
                 )
-                key_information = session.get_api_key_information()
-                uid = key_information['result']['id']
                 try:
                     session.set_leverage(
                         category="linear",
@@ -170,6 +168,8 @@ def execute_order(data):
                     print("Position still open. Waiting 1 seconds...")
                     time.sleep(1)
 
+                key_information = session.get_api_key_information()
+                uid = key_information['result']['id']
                 #Check Recent Trade Info And Log It On Google Sheets
                 close_pnl = session.get_closed_pnl(
                     category="linear",
