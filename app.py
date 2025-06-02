@@ -10,7 +10,7 @@ from functools import lru_cache
 from config import minQtyDict, precisionDecimalDict
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
-from datetime import datetime
+from datetime import datetime, timezone
 
 load_dotenv()
 
@@ -178,8 +178,8 @@ def execute_order(data):
                 pnl_execType = last_pnl["execType"]
                 pnl_fillCount = last_pnl["fillCount"]
                 pnl_cumExitValue = last_pnl["cumExitValue"]
-                current_date = datetime.now(datetime.UTC).strftime("%d/%m/%Y")
-                current_time = datetime.now(datetime.UTC).strftime("%H:%M:%S")
+                current_date = datetime.now(timezone.utc).strftime("%d/%m/%Y")
+                current_time = datetime.now(timezone.utc).strftime("%H:%M:%S")
                 # Open the spreadsheet and worksheet
                 spreadsheet = client.open("Live Trading")
                 sheet = spreadsheet.worksheet("Automated Trades")
