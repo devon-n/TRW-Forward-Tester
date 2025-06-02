@@ -158,15 +158,12 @@ def execute_order(data):
                 #record_trade(data, order_response)
 
             if stop_loss == "na": #SL or TP order
-                while True:
-                    # Check if all Trades are Executed
-                    open_orders = session.get_open_orders(category="linear", limit=1)
-                    open_order_id = open_orders["result"]["list"][0]["orderId"]
+                #open_orders = session.get_open_orders(category="linear", limit=1)
+                #open_order_id = open_orders["result"]["list"][0]["orderId"]
 
-                    if open_order_id == "": #No open positions
-                        break
-                    print("Position still open. Waiting 1 seconds...")
-                    time.sleep(1)
+                #if open_order_id == "": #No open positions
+                print("Waiting 10 seconds to log trade on Google Sheets...")
+                time.sleep(10)
 
                 key_information = session.get_api_key_information()
                 uid = key_information['result']['id']
@@ -311,9 +308,15 @@ def webhook():
     # return jsonify({"code": "error", "message": "Invalid passphrase"}), 403
 
     # Execute or simulate the order
-    order_thread = threading.Thread(target=execute_order,args=(data,))
-    order_thread.start()
-    return "Thread started."
+    success = execute_order(data)
+
+    if success:
+        return jsonify({"code": "success", "message": "Order executed"})
+    else:
+        return jsonify({"code": "error", "message": "Order failed"})
+    #order_thread = threading.Thread(target=execute_order,args=(data,))
+    #order_thread.start()
+    #return "Thread started."
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
