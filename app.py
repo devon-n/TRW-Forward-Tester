@@ -69,7 +69,7 @@ def record_trade(data, order_response):
             "prev_market_position_size": data["strategy"]["prev_market_position_size"]
         })
     except Exception as e:
-        print(f"Failed Order: An exception occurred: {e}")
+        print(f"Error while record_trade(): {e}")
 
 def execute_order(data):
     """Executes a real Bybit order or simulates it for paper trading."""
@@ -276,7 +276,7 @@ def execute_order(data):
         return True
     except Exception as e:
         record_trade(data, "Failed Real Order?")
-        print(f"Failed Order: An exception occurred: {e}")
+        print(f"Error while execute_order(): {e}")
         return False
 
 @app.route('/')
