@@ -159,6 +159,7 @@ def execute_order(data):
                 record_trade(data, order_response)
 
             if stop_loss == "na": #SL or TP order
+                #Check if all Trades are Executed
                 open_orders = session.get_open_orders(category="linear",limit=1)
                 open_order_id = open_orders["result"]["list"][0]["orderId"]
                 while open_order_id != "": #Position not filled
@@ -237,9 +238,9 @@ def execute_order(data):
                     session.create_universal_transfer(
                         transferId = str(uuid.uuid4()),
                         coin = "USDT",
-                        amount = excess_capital,
-                        fromMemberId = uid,
-                        toMemberId = os.environ.get('MAIN_UID'), #Main UID
+                        amount = str(excess_capital),
+                        fromMemberId = int(uid),
+                        toMemberId = int(os.environ.get('MAIN_UID')), #Main UID
                         fromAccountType = "UNIFIED",
                         toAccountType = "UNIFIED",
                     )
@@ -253,15 +254,15 @@ def execute_order(data):
                     main_balance = session.get_coin_balance(
                         accountType="UNIFIED",
                         coin="USDT",
-                        memberId=os.environ.get('MAIN_UID'),
+                        memberId=int(os.environ.get('MAIN_UID')),
                     )
                     if float(main_balance['result']['balance']['transferBalance']) > excess_capital:
                         session.create_universal_transfer(
                             transferId = str(uuid.uuid4()),
                             coin = "USDT",
-                            amount = excess_capital,
-                            fromMemberId = os.environ.get('MAIN_UID'),
-                            toMemberId = uid,
+                            amount = str(excess_capital),
+                            fromMemberId = int(os.environ.get('MAIN_UID')),
+                            toMemberId = int(uid),
                             fromAccountType = "UNIFIED",
                             toAccountType = "UNIFIED",
                         )
