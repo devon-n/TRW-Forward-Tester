@@ -165,7 +165,7 @@ def execute_order(data):
                     limit=1,
                 )
                 last_order = order_history["result"]["list"][0]  # Access the first item in the list
-                print(f"Order History: {last_order}")
+                #print(f"Order History: {last_order}")
                 current_date = datetime.now(timezone.utc).strftime("%d/%m/%Y")
                 current_time = datetime.now(timezone.utc).strftime("%H:%M:%S")
                 # Open the spreadsheet and worksheet
@@ -225,9 +225,9 @@ def execute_order(data):
                 ]
                 try:
                     sheet.append_row(order_data)
-                    print(f"Logged Trade Data: {order_data}")
+                    #print(f"Logged Trade Data: {order_data}")
                 except Exception as e:
-                    print(f"Failed Logging Trade: {e}")
+                    print(f"Error While Logging Trade: {e}")
 
                 # Check Recent Trade Info And Log It On Google Sheets
                 trade_history = session.get_executions(
@@ -236,7 +236,7 @@ def execute_order(data):
                     limit=1,
                 )
                 last_trade = trade_history["result"]["list"][0]  # Access the first item in the list
-                print(f"Trade History: {last_trade}")
+                #print(f"Trade History: {last_trade}")
                 current_date = datetime.now(timezone.utc).strftime("%d/%m/%Y")
                 current_time = datetime.now(timezone.utc).strftime("%H:%M:%S")
                 # Open the spreadsheet and worksheet
@@ -280,9 +280,9 @@ def execute_order(data):
                 ]
                 try:
                     sheet.append_row(trade_data)
-                    print(f"Logged Trade Data: {trade_data}")
+                    #print(f"Logged Trade Data: {trade_data}")
                 except Exception as e:
-                    print(f"Failed Logging Trade: {e}")
+                    print(f"Error While Logging Trade: {e}")
 
             if stop_loss == "na": #SL or TP order
                 #open_orders = session.get_open_orders(category="linear", limit=1)
@@ -362,9 +362,9 @@ def execute_order(data):
                 ]
                 try:
                     sheet.append_row(order_data)
-                    print(f"Logged Trade Data: {order_data}")
+                    #print(f"Logged Trade Data: {order_data}")
                 except Exception as e:
-                    print(f"Failed Logging Trade: {e}")
+                    print(f"Error While Logging Trade: {e}")
 
                 # Check Recent Trade Info And Log It On Google Sheets
                 trade_history = session.get_executions(
@@ -417,9 +417,9 @@ def execute_order(data):
                 ]
                 try:
                     sheet.append_row(trade_data)
-                    print(f"Logged Trade Data: {trade_data}")
+                    #print(f"Logged Trade Data: {trade_data}")
                 except Exception as e:
-                    print(f"Failed Logging Trade: {e}")
+                    print(f"Error While Logging Trade: {e}")
 
 
                 #Check Recent PnL And Log It On Google Sheets
@@ -462,9 +462,9 @@ def execute_order(data):
                 ]
                 try:
                     sheet.append_row(trade_data)
-                    print(f"Logged Trade Data: {trade_data}")
+                    #print(f"Logged Trade Data: {trade_data}")
                 except Exception as e:
-                    print(f"Failed Logging Trade: {e}")
+                    print(f"Error While Logging Trade: {e}")
 
                 # Better if confirm no trades open.
                 balance_response = session.get_wallet_balance(
