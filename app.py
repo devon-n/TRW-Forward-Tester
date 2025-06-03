@@ -169,8 +169,11 @@ def execute_order(data):
                 current_date = datetime.now(timezone.utc).strftime("%d/%m/%Y")
                 current_time = datetime.now(timezone.utc).strftime("%H:%M:%S")
                 # Open the spreadsheet and worksheet
-                spreadsheet = client.open("Live Trading")
-                sheet = spreadsheet.worksheet("Order History (A)")
+                try:
+                    spreadsheet = client.open("Live Trading")
+                    sheet = spreadsheet.worksheet("Order History (A)")
+                except Exception as e:
+                    print(f"Error while creating spreadsheet {e}")
 
                 # Sample data to append
                 order_data = [
