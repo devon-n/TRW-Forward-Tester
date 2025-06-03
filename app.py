@@ -165,7 +165,7 @@ def execute_order(data):
                     limit=1,
                 )
                 last_order = order_history["result"]["list"][0]  # Access the first item in the list
-                #print(f"Logging Order History: {last_pnl}")
+                print(f"Order History: {last_order}")
                 current_date = datetime.now(timezone.utc).strftime("%d/%m/%Y")
                 current_time = datetime.now(timezone.utc).strftime("%H:%M:%S")
                 # Open the spreadsheet and worksheet
@@ -236,7 +236,7 @@ def execute_order(data):
                     limit=1,
                 )
                 last_trade = trade_history["result"]["list"][0]  # Access the first item in the list
-                # print(f"Closed Pnl: {last_trade}")
+                print(f"Trade History: {last_trade}")
                 current_date = datetime.now(timezone.utc).strftime("%d/%m/%Y")
                 current_time = datetime.now(timezone.utc).strftime("%H:%M:%S")
                 # Open the spreadsheet and worksheet
