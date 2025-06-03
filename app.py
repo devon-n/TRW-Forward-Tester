@@ -491,7 +491,7 @@ def execute_order(data):
                         )
                         print(f"Profit Moved to Main Account from UID: {uid}")
                     except Exception as e:
-                        print(f"Error while Line 239 Universal Transfer: {e}")
+                        print(f"Error while Line 481 Universal Transfer: {e}")
                 if floor_balance < target_capital: #Needs More Capital
                     try:
                         session = HTTP(
@@ -504,6 +504,7 @@ def execute_order(data):
                             coin="USDT",
                             memberId=int(os.getenv('MAIN_UID')),
                         )
+                        print(f"Fetched Main Account Balance: {main_balance}")
                         if float(main_balance['result']['balance']['transferBalance']) > excess_capital:
                             try:
                                 session.create_universal_transfer(
@@ -517,11 +518,11 @@ def execute_order(data):
                                 )
                                 print(f"Loss Balance Filled from Main Account to UID: {uid}")
                             except Exception as e:
-                                print(f"Error while Line 265 Universal Transfer: {e}")
+                                print(f"Error while Line 508 Universal Transfer: {e}")
                         else:
                             print(f"Not enough balance in Main Account to fill Sub Account: {uid}")
                     except Exception as e:
-                        print(f"Error while Line 251 Universal Transfer: {e}")
+                        print(f"Error while Line 496 Universal Transfer: {e}")
 
         else:
             print(f"Simulated paper order: {order_type} - {side} {quantity} {ticker}")
