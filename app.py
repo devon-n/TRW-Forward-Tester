@@ -157,8 +157,8 @@ def execute_order(data):
                 # Get order price from trade response
                 #record_trade(data, order_response)
             if stop_loss != "na": #Entry Only
-                print("Waiting 10 seconds to log trade on Google Sheets...")
-                time.sleep(10)
+                print("Waiting 20 seconds to log trade on Google Sheets...")
+                time.sleep(20)
                 order_history = session.get_order_history(
                     category="linear",
                     symbol=ticker,
