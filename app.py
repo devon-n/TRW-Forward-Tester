@@ -121,8 +121,8 @@ def execute_order(data):
                         buyLeverage=leverage,
                         sellLeverage=leverage,
                     )
-                except Exception as e:
-                    print("Error while setting leverage:", e)
+                except:
+                    print("Leverage already set.")
             else:
                 print(f"Strategy '{strategy_name}' not found in strategy_keys.json.")
 
@@ -163,7 +163,7 @@ def execute_order(data):
 
                 #if open_order_id == "": #No open positions
                 print("Waiting 10 seconds to log trade on Google Sheets...")
-                time.sleep(10)
+                time.sleep(30)
 
                 key_information = session.get_api_key_information()
                 uid = key_information['result']['id']
