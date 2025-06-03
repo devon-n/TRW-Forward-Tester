@@ -156,6 +156,133 @@ def execute_order(data):
 
                 # Get order price from trade response
                 #record_trade(data, order_response)
+            if stop_loss != "na": #Entry Only
+                print("Waiting 10 seconds to log trade on Google Sheets...")
+                time.sleep(10)
+                order_history = session.get_order_history(
+                    category="linear",
+                    symbol=ticker,
+                    limit=1,
+                )
+                last_order = order_history["result"]["list"][0]  # Access the first item in the list
+                #print(f"Logging Order History: {last_pnl}")
+                current_date = datetime.now(timezone.utc).strftime("%d/%m/%Y")
+                current_time = datetime.now(timezone.utc).strftime("%H:%M:%S")
+                # Open the spreadsheet and worksheet
+                spreadsheet = client.open("Live Trading")
+                sheet = spreadsheet.worksheet("Order History (A)")
+
+                # Sample data to append
+                order_data = [
+                    timeframe,
+                    strategy_name,
+                    current_date,  # date
+                    current_time,
+                    last_order["orderId"],
+                    last_order["orderLinkId"],
+                    last_order["blockTradeId"],
+                    last_order["symbol"], # symbol
+                    last_order["price"],
+                    last_order["qty"], # quantity
+                    last_order["side"], # direction
+                    last_order["isLeverage"],
+                    last_order["positionIdx"],
+                    last_order["orderStatus"],
+                    last_order["cancelType"],
+                    last_order["rejectionReason"],
+                    last_order["avgPrice"],
+                    last_order["leavesQty"],
+                    last_order["leavesValue"],
+                    last_order["cumExecQty"],
+                    last_order["cumExecValue"],
+                    last_order["cumExecFee"],
+                    last_order["timeInForce"],
+                    last_order["orderType"],
+                    last_order["stopOrderType"],
+                    last_order["orderIv"],
+                    last_order["triggerPrice"],
+                    last_order["takeProfit"],
+                    last_order["stopLoss"],
+                    last_order["tpTriggerBy"],
+                    last_order["slTriggerBy"],
+                    last_order["triggerDirection"],
+                    last_order["triggerBy"],
+                    last_order["lastPriceOnCreated"],
+                    last_order["reduceOnly"],
+                    last_order["closeOnTrigger"],
+                    last_order["smpType"],
+                    last_order["smpGroup"],
+                    last_order["smpOrderId"],
+                    last_order["tpslMode"],
+                    last_order["tpLimitPrice"],
+                    last_order["slLimitPrice"],
+                    last_order["placeType"],
+                    last_order["slippageToleranceType"],
+                    last_order["slippageTolerance"],
+                    last_order["createdTime"],
+                    last_order["updatedTime"],
+                    last_order["extraFees"]
+                ]
+                try:
+                    sheet.append_row(order_data)
+                    print(f"Logged Trade Data: {order_data}")
+                except Exception as e:
+                    print(f"Failed Logging Trade: {e}")
+
+                # Check Recent Trade Info And Log It On Google Sheets
+                trade_history = session.get_executions(
+                    category="linear",
+                    symbol=ticker,
+                    limit=1,
+                )
+                last_trade = trade_history["result"]["list"][0]  # Access the first item in the list
+                # print(f"Closed Pnl: {last_trade}")
+                current_date = datetime.now(timezone.utc).strftime("%d/%m/%Y")
+                current_time = datetime.now(timezone.utc).strftime("%H:%M:%S")
+                # Open the spreadsheet and worksheet
+                spreadsheet = client.open("Live Trading")
+                sheet = spreadsheet.worksheet("Trade History (A)")
+
+                # Sample data to append
+                trade_data = [
+                    timeframe,
+                    strategy_name,
+                    current_date,  # date
+                    current_time,
+                    last_trade["symbol"],  # symbol
+                    last_trade["orderType"],
+                    last_trade["underlyingPrice"],
+                    last_trade["orderLinkId"],
+                    last_trade["side"],  # direction
+                    last_trade["indexPrice"],
+                    last_trade["orderId"],
+                    last_trade["stopOrderType"],  # entry
+                    last_trade["leavesQty"],  # quantity
+                    last_trade["execTime"],
+                    last_trade["feeCurrency"],
+                    last_trade["isMaker"],
+                    last_trade["execFee"],
+                    last_trade["feeRate"],  # exit
+                    last_trade["execId"],
+                    last_trade["tradeIv"],
+                    last_trade["blockTradeId"],
+                    last_trade["markPrice"],
+                    last_trade["execPrice"],
+                    last_trade["markIv"],
+                    last_trade["orderQty"],
+                    last_trade["orderPrice"],
+                    last_trade["execValue"],
+                    last_trade["execType"],
+                    last_trade["execQty"],
+                    last_trade["closedSize"],
+                    last_trade["extraFees"],
+                    last_trade["seq"],
+                ]
+                try:
+                    sheet.append_row(trade_data)
+                    print(f"Logged Trade Data: {trade_data}")
+                except Exception as e:
+                    print(f"Failed Logging Trade: {e}")
 
             if stop_loss == "na": #SL or TP order
                 #open_orders = session.get_open_orders(category="linear", limit=1)
@@ -167,31 +294,142 @@ def execute_order(data):
 
                 key_information = session.get_api_key_information()
                 uid = key_information['result']['id']
-                #Check Recent Trade Info And Log It On Google Sheets
+
+                # Check Recent Order Info And Log It On Google Sheets
+                order_history = session.get_order_history(
+                    category="linear",
+                    symbol=ticker,
+                    limit=1,
+                )
+                last_order = order_history["result"]["list"][0]  # Access the first item in the list
+                # print(f"Logging Order History: {last_pnl}")
+                current_date = datetime.now(timezone.utc).strftime("%d/%m/%Y")
+                current_time = datetime.now(timezone.utc).strftime("%H:%M:%S")
+                # Open the spreadsheet and worksheet
+                spreadsheet = client.open("Live Trading")
+                sheet = spreadsheet.worksheet("Order History (A)")
+
+                # Sample data to append
+                order_data = [
+                    timeframe,
+                    strategy_name,
+                    current_date,  # date
+                    current_time,
+                    last_order["orderId"],
+                    last_order["orderLinkId"],
+                    last_order["blockTradeId"],
+                    last_order["symbol"],  # symbol
+                    last_order["price"],
+                    last_order["qty"],  # quantity
+                    last_order["side"],  # direction
+                    last_order["isLeverage"],
+                    last_order["positionIdx"],
+                    last_order["orderStatus"],
+                    last_order["cancelType"],
+                    last_order["rejectionReason"],
+                    last_order["avgPrice"],
+                    last_order["leavesQty"],
+                    last_order["leavesValue"],
+                    last_order["cumExecQty"],
+                    last_order["cumExecValue"],
+                    last_order["cumExecFee"],
+                    last_order["timeInForce"],
+                    last_order["orderType"],
+                    last_order["stopOrderType"],
+                    last_order["orderIv"],
+                    last_order["triggerPrice"],
+                    last_order["takeProfit"],
+                    last_order["stopLoss"],
+                    last_order["tpTriggerBy"],
+                    last_order["slTriggerBy"],
+                    last_order["triggerDirection"],
+                    last_order["triggerBy"],
+                    last_order["lastPriceOnCreated"],
+                    last_order["reduceOnly"],
+                    last_order["closeOnTrigger"],
+                    last_order["smpType"],
+                    last_order["smpGroup"],
+                    last_order["smpOrderId"],
+                    last_order["tpslMode"],
+                    last_order["tpLimitPrice"],
+                    last_order["slLimitPrice"],
+                    last_order["placeType"],
+                    last_order["slippageToleranceType"],
+                    last_order["slippageTolerance"],
+                    last_order["createdTime"],
+                    last_order["updatedTime"],
+                    last_order["extraFees"]
+                ]
+                try:
+                    sheet.append_row(order_data)
+                    print(f"Logged Trade Data: {order_data}")
+                except Exception as e:
+                    print(f"Failed Logging Trade: {e}")
+
+                # Check Recent Trade Info And Log It On Google Sheets
+                trade_history = session.get_executions(
+                    category="linear",
+                    symbol=ticker,
+                    limit=1,
+                )
+                last_trade = trade_history["result"]["list"][0]  # Access the first item in the list
+                # print(f"Closed Pnl: {last_trade}")
+                current_date = datetime.now(timezone.utc).strftime("%d/%m/%Y")
+                current_time = datetime.now(timezone.utc).strftime("%H:%M:%S")
+                # Open the spreadsheet and worksheet
+                spreadsheet = client.open("Live Trading")
+                sheet = spreadsheet.worksheet("Trade History (A)")
+
+                # Sample data to append
+                trade_data = [
+                    timeframe,
+                    strategy_name,
+                    current_date,  # date
+                    current_time,
+                    last_trade["symbol"],  # symbol
+                    last_trade["orderType"],
+                    last_trade["underlyingPrice"],
+                    last_trade["orderLinkId"],
+                    last_trade["side"],  # direction
+                    last_trade["indexPrice"],
+                    last_trade["orderId"],
+                    last_trade["stopOrderType"],  # entry
+                    last_trade["leavesQty"],  # quantity
+                    last_trade["execTime"],
+                    last_trade["feeCurrency"],
+                    last_trade["isMaker"],
+                    last_trade["execFee"],
+                    last_trade["feeRate"],  # exit
+                    last_trade["execId"],
+                    last_trade["tradeIv"],
+                    last_trade["blockTradeId"],
+                    last_trade["markPrice"],
+                    last_trade["execPrice"],
+                    last_trade["markIv"],
+                    last_trade["orderQty"],
+                    last_trade["orderPrice"],
+                    last_trade["execValue"],
+                    last_trade["execType"],
+                    last_trade["execQty"],
+                    last_trade["closedSize"],
+                    last_trade["extraFees"],
+                    last_trade["seq"],
+                ]
+                try:
+                    sheet.append_row(trade_data)
+                    print(f"Logged Trade Data: {trade_data}")
+                except Exception as e:
+                    print(f"Failed Logging Trade: {e}")
+
+
+                #Check Recent PnL And Log It On Google Sheets
                 close_pnl = session.get_closed_pnl(
                     category="linear",
                     symbol=ticker,
                     limit=1,
                 )
                 last_pnl = close_pnl["result"]["list"][0]  # Access the first item in the list
-                print(f"Closed Pnl: {last_pnl}")
-                pnl_symbol = last_pnl["symbol"]
-                pnl_orderType = last_pnl["orderType"]
-                pnl_leverage = last_pnl["leverage"]
-                pnl_updatedTime = last_pnl["updatedTime"]
-                pnl_side = last_pnl["side"]
-                pnl_orderId = last_pnl["orderId"]
-                pnl_closedPnl = last_pnl["closedPnl"]
-                pnl_avgEntryPrice = last_pnl["avgEntryPrice"]
-                pnl_qty = last_pnl["qty"]
-                pnl_cumEntryValue = last_pnl["cumEntryValue"]
-                pnl_createdTime = last_pnl["createdTime"]
-                pnl_orderPrice = last_pnl["orderPrice"]
-                pnl_closedSize = last_pnl["closedSize"]
-                pnl_avgExitPrice = last_pnl["avgExitPrice"]
-                pnl_execType = last_pnl["execType"]
-                pnl_fillCount = last_pnl["fillCount"]
-                pnl_cumExitValue = last_pnl["cumExitValue"]
+                #print(f"Closed Pnl: {last_pnl}")
                 current_date = datetime.now(timezone.utc).strftime("%d/%m/%Y")
                 current_time = datetime.now(timezone.utc).strftime("%H:%M:%S")
                 # Open the spreadsheet and worksheet
@@ -204,23 +442,23 @@ def execute_order(data):
                     strategy_name,
                     current_date,  # date
                     current_time,
-                    pnl_symbol,  # symbol
-                    pnl_orderType,
-                    pnl_leverage,
-                    pnl_updatedTime,
-                    pnl_side, # direction
-                    pnl_orderId,
-                    pnl_closedPnl,
-                    pnl_avgEntryPrice, # entry
-                    pnl_qty, # quantity
-                    pnl_cumEntryValue,
-                    pnl_createdTime,
-                    pnl_orderPrice,
-                    pnl_closedSize,
-                    pnl_avgExitPrice, # exit
-                    pnl_execType,
-                    pnl_fillCount,
-                    pnl_cumExitValue
+                    last_pnl["symbol"],  # symbol
+                    last_pnl["orderType"],
+                    last_pnl["leverage"],
+                    last_pnl["updatedTime"],
+                    last_pnl["side"], # direction
+                    last_pnl["orderId"],
+                    last_pnl["closedPnl"],
+                    last_pnl["avgEntryPrice"], # entry
+                    last_pnl["qty"], # quantity
+                    last_pnl["cumEntryValue"],
+                    last_pnl["createdTime"],
+                    last_pnl["orderPrice"],
+                    last_pnl["closedSize"],
+                    last_pnl["avgExitPrice"], # exit
+                    last_pnl["execType"],
+                    last_pnl["fillCount"],
+                    last_pnl["cumExitValue"]
                 ]
                 try:
                     sheet.append_row(trade_data)
