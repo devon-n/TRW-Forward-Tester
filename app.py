@@ -507,8 +507,11 @@ def execute_order(data):
                         print(f"Fetched Main Account Balance: {main_balance}")
                         if float(main_balance['result']['balance']['transferBalance']) > excess_capital:
                             try:
+                                transferId = str(uuid.uuid4())
+                                print(f"The printed uuid: {transferId}")
+                                print(f"The original variable uid{uid}")
                                 session.create_universal_transfer(
-                                    transferId = str(uuid.uuid4()),
+                                    transferId = transferId,
                                     coin = "USDT",
                                     amount = str(excess_capital),
                                     fromMemberId = int(os.getenv('MAIN_UID')),
