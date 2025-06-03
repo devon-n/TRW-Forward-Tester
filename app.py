@@ -89,7 +89,7 @@ def execute_order(data):
         # Update min qty and precision
         ticker = ticker.replace('.P', '')
         ticker = ticker + "T" if ticker.endswith("USD") else ticker
-        print(f"NEW ALERT\n<<{strategy_name}>>\n-{order_type}-\n{side} {quantity} {ticker} with {leverage}x")
+        print(f"NEW ALERT\n-{order_type}-\n<<{strategy_name}>>\n{side} {quantity} {ticker}\n{leverage}x Leverage")
 
         #if ticker in minQtyDict:
             #if float(quantity) < float(minQtyDict[ticker]):
@@ -127,7 +127,7 @@ def execute_order(data):
                 print(f"Strategy '{strategy_name}' not found in strategy_keys.json.")
 
             if order_id != "SL": # Entry or TP order
-                print(f"\nSending Order: {json.dumps(data)}\n")
+                #print(f"\nSending Order: {json.dumps(data)}\n")
                 if side == "Buy":
                     order_params = {
                         "category": "linear",
@@ -468,7 +468,7 @@ def execute_order(data):
                     accountType="UNIFIED",
                     coin="USDT",
                 )
-                print(f"Rebalancing: {balance_response}")
+                #print(f"Rebalancing: {balance_response}")
                 balance_list = balance_response["result"]["list"][0]
                 balance = float(balance_list["totalEquity"])
                 floor_balance = floor(balance)
@@ -480,11 +480,12 @@ def execute_order(data):
                     coin="USDT",
                 )
                 uid = sub_account_balance['result']['memberId']
-                print(f"Fetched Sub account uid: {uid}")
+                #print(f"Fetched Sub account uid: {uid}")
+                transferId = str(uuid.uuid4())
                 if floor_balance > target_capital: #Has Excess Capital
                     try:
                         session.create_universal_transfer(
-                            transferId = str(uuid.uuid4()),
+                            transferId = transferId,
                             coin = "USDT",
                             amount = str(excess_capital),
                             fromMemberId = int(uid),
@@ -507,12 +508,12 @@ def execute_order(data):
                             coin="USDT",
                             memberId=int(os.getenv('MAIN_UID')),
                         )
-                        print(f"Fetched Main Account Balance: {main_balance}")
+                        #print(f"Fetched Main Account Balance: {main_balance}")
                         if float(main_balance['result']['balance']['transferBalance']) > excess_capital:
                             try:
-                                transferId = str(uuid.uuid4())
-                                print(f"The printed uuid: {transferId}")
-                                print(f"The original variable uid{uid}")
+
+                                #print(f"The printed uuid: {transferId}")
+                                #print(f"The original variable uid{uid}")
                                 session.create_universal_transfer(
                                     transferId = transferId,
                                     coin = "USDT",
@@ -522,7 +523,7 @@ def execute_order(data):
                                     fromAccountType = "UNIFIED",
                                     toAccountType = "UNIFIED",
                                 )
-                                print(f"Loss Balance Filled from Main Account to UID: {uid}")
+                                print(f"Loss Balance({excess_capital}) Filled from Main Account to UID: {uid}")
                             except Exception as e:
                                 print(f"Error while Line 508 Universal Transfer: {e}")
                         else:
