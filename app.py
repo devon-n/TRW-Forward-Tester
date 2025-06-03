@@ -496,7 +496,7 @@ def execute_order(data):
                             fromAccountType = "UNIFIED",
                             toAccountType = "UNIFIED",
                         )
-                        print(f"Profit Moved to Main Account from UID: {uid}")
+                        print(f"Profit({excess_capital} USDT) Moved to Main Account from UID: {uid}")
                     except Exception as e:
                         print(f"Error while Line 481 Universal Transfer: {e}")
                 if floor_balance < target_capital: #Needs More Capital
@@ -526,7 +526,7 @@ def execute_order(data):
                                     fromAccountType = "UNIFIED",
                                     toAccountType = "UNIFIED",
                                 )
-                                print(f"Loss Balance({excess_capital}) Filled from Main Account to UID: {uid}")
+                                print(f"Loss Balance({excess_capital} USDT) Filled from Main Account to UID: {uid}")
                             except Exception as e:
                                 print(f"Error while Line 508 Universal Transfer: {e}")
                         else:
