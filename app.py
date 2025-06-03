@@ -292,9 +292,6 @@ def execute_order(data):
                 print("Waiting 10 seconds to log trade on Google Sheets...")
                 time.sleep(10)
 
-                key_information = session.get_api_key_information()
-                uid = key_information['result']['id']
-
                 # Check Recent Order Info And Log It On Google Sheets
                 order_history = session.get_order_history(
                     category="linear",
@@ -478,6 +475,12 @@ def execute_order(data):
                 target_capital = 500
                 excess_capital = abs(floor_balance - target_capital)
 
+                sub_account_balance = session.get_coin_balance(
+                    accountType="UNIFIED",
+                    coin="USDT",
+                )
+                uid = sub_account_balance['result']['memberId']
+                print(f"Fetched Sub account uid: {uid}")
                 if floor_balance > target_capital: #Has Excess Capital
                     try:
                         session.create_universal_transfer(
