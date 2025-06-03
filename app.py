@@ -196,7 +196,7 @@ def execute_order(data):
                 current_time = datetime.now(timezone.utc).strftime("%H:%M:%S")
                 # Open the spreadsheet and worksheet
                 spreadsheet = client.open("Live Trading")
-                sheet = spreadsheet.worksheet("Closed PnL (A)")
+                sheet = spreadsheet.worksheet("PnL (A)")
 
                 # Sample data to append
                 trade_data = [
