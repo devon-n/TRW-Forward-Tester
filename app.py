@@ -289,8 +289,8 @@ def execute_order(data):
                 #open_order_id = open_orders["result"]["list"][0]["orderId"]
 
                 #if open_order_id == "": #No open positions
-                print("Waiting 10 seconds to log trade on Google Sheets...")
-                time.sleep(10)
+                print("Waiting 20 seconds to log trade on Google Sheets...")
+                time.sleep(20)
 
                 # Check Recent Order Info And Log It On Google Sheets
                 order_history = session.get_order_history(
