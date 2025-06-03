@@ -225,7 +225,6 @@ def execute_order(data):
                     last_order["updatedTime"],
                     last_order["extraFees"]
                 ]
-                print(f"Order_Data List: {order_data}")
                 try:
                     sheet.append_row(order_data)
                     #print(f"Logged Trade Data: {order_data}")
