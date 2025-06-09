@@ -135,7 +135,8 @@ def execute_order(data):
                         "side": side,
                         "orderType": "Limit",
                         "qty": quantity,
-                        "price": str(float(order_price) - 0.01)
+                        "price": str(float(order_price) - 0.01),
+                        "timeInForce": "PostOnly"
                     }
                     if stop_loss != "na":
                         order_params["stopLoss"] = stop_loss
@@ -147,7 +148,8 @@ def execute_order(data):
                         "side": side,
                         "orderType": "Limit",
                         "qty": quantity,
-                        "price": str(float(order_price) + 0.01)
+                        "price": str(float(order_price) + 0.01),
+                        "timeInForce": "PostOnly"
                     }
                     if stop_loss != "na":
                         order_params["stopLoss"] = stop_loss
