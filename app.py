@@ -80,7 +80,7 @@ def execute_order(data):
         ticker = data['ticker']
 
         timeframe = data['timeframe']
-        leverage, stop_loss = data.get('alert_message').split(",")
+        entry_tp_sl, leverage, stop_loss = data.get('alert_message').split(",")
         # leverage = int(data.get('leverage', 0))  # Default leverage to 0 if not provided
         order_type = data.get('order_type', 'PAPER').upper()  # Default to paper trading
         order_price = data['strategy']['order_price']
@@ -126,39 +126,66 @@ def execute_order(data):
             else:
                 print(f"Strategy '{strategy_name}' not found in strategy_keys.json.")
 
-            if order_id != "SL": # Entry or TP order
+            if entry_tp_sl == "Entry" or "TP": # Entry or TP order
                 #print(f"\nSending Order: {json.dumps(data)}\n")
-                if side == "Buy":
-                    order_params = {
-                        "category": "linear",
-                        "symbol": ticker,
-                        "side": side,
-                        "orderType": "Limit",
-                        "qty": quantity,
-                        "price": str(float(order_price) - 0.01),
-                        "timeInForce": "PostOnly"
-                    }
-                    if stop_loss != "na":
-                        order_params["stopLoss"] = stop_loss
-                    order_response = session.place_order(**order_params)
-                if side == "Sell":
-                    order_params = {
-                        "category": "linear",
-                        "symbol": ticker,
-                        "side": side,
-                        "orderType": "Limit",
-                        "qty": quantity,
-                        "price": str(float(order_price) + 0.01),
-                        "timeInForce": "PostOnly"
-                    }
-                    if stop_loss != "na":
-                        order_params["stopLoss"] = stop_loss
-                    order_response = session.place_order(**order_params)
-                print(f"Real order executed: {order_type} - {side} {quantity} {ticker} | {order_response}")
+                if entry_tp_sl == "Entry":
+                    if side == "Buy":
+                        order_params = {
+                            "category": "linear",
+                            "symbol": ticker,
+                            "side": side,
+                            "orderType": "Limit",
+                            "qty": quantity,
+                            "price": str(float(order_price) - 0.01),
+                            "timeInForce": "PostOnly"
+                        }
+                        if stop_loss != "na":
+                            order_params["stopLoss"] = stop_loss
+                        order_response = session.place_order(**order_params)
+                    if side == "Sell":
+                        order_params = {
+                            "category": "linear",
+                            "symbol": ticker,
+                            "side": side,
+                            "orderType": "Limit",
+                            "qty": quantity,
+                            "price": str(float(order_price) + 0.01),
+                            "timeInForce": "PostOnly"
+                        }
+                        if stop_loss != "na":
+                            order_params["stopLoss"] = stop_loss
+                        order_response = session.place_order(**order_params)
+                    print(f"<<Entry>> order executed: {order_type} - {side} {quantity} {ticker} | {order_response}")
+                if entry_tp_sl == "TP":
+                    if side == "Buy":
+                        order_params = {
+                            "category": "linear",
+                            "symbol": ticker,
+                            "side": side,
+                            "orderType": "Limit",
+                            "qty": quantity,
+                            "price": str(float(order_price) - 0.01),
+                            "timeInForce": "PostOnly",
+                            "reduceOnly": bool(1)
+                        }
+                        order_response = session.place_order(**order_params)
+                    if side == "Sell":
+                        order_params = {
+                            "category": "linear",
+                            "symbol": ticker,
+                            "side": side,
+                            "orderType": "Limit",
+                            "qty": quantity,
+                            "price": str(float(order_price) + 0.01),
+                            "timeInForce": "PostOnly",
+                            "reduceOnly": bool(1)
+                        }
+                        order_response = session.place_order(**order_params)
+                    print(f"<<Take Profit>> order executed: {order_type} - {side} {quantity} {ticker} | {order_response}")
 
                 # Get order price from trade response
                 #record_trade(data, order_response)
-            if stop_loss != "na": #Entry Only
+            if entry_tp_sl == "Entry": #Entry Only
                 print("Waiting 30 seconds to log trade on Google Sheets...")
                 time.sleep(30)
                 order_history = session.get_order_history(
@@ -288,7 +315,7 @@ def execute_order(data):
                 except Exception as e:
                     print(f"Error While Logging Trade: {e}")
 
-            if stop_loss == "na": #SL or TP order
+            if entry_tp_sl == "SL" or "TP": #SL or TP order
                 #open_orders = session.get_open_orders(category="linear", limit=1)
                 #open_order_id = open_orders["result"]["list"][0]["orderId"]
 
