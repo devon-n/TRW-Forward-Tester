@@ -114,6 +114,11 @@ def execute_order(data):
                     api_key=os.getenv(api_key_env),
                     api_secret=os.getenv(api_secret_env),
                 )
+                account_balance = session.get_coin_balance(
+                    accountType="UNIFIED",
+                    coin="USDT",
+                )
+                initial_uid =account_balance['result']['memberId']
                 try:
                     session.set_leverage(
                         category="linear",
@@ -126,7 +131,7 @@ def execute_order(data):
             else:
                 print(f"Strategy '{strategy_name}' not found in strategy_keys.json.")
 
-            if entry_tp_sl == "Entry" or "TP": # Entry or TP order
+            if entry_tp_sl == "Entry" or entry_tp_sl == "TP": # Entry or TP order
                 #print(f"\nSending Order: {json.dumps(data)}\n")
                 if entry_tp_sl == "Entry":
                     if side == "Buy":
@@ -315,7 +320,7 @@ def execute_order(data):
                 except Exception as e:
                     print(f"Error While Logging Trade: {e}")
 
-            if entry_tp_sl == "SL" or "TP": #SL or TP order
+            if entry_tp_sl == "SL" or entry_tp_sl == "TP": #SL or TP order
                 #open_orders = session.get_open_orders(category="linear", limit=1)
                 #open_order_id = open_orders["result"]["list"][0]["orderId"]
 
@@ -495,73 +500,74 @@ def execute_order(data):
                 except Exception as e:
                     print(f"Error While Logging Trade: {e}")
 
-                # Better if confirm no trades open.
-                balance_response = session.get_wallet_balance(
-                    accountType="UNIFIED",
-                    coin="USDT",
-                )
-                #print(f"Rebalancing: {balance_response}")
-                balance_list = balance_response["result"]["list"][0]
-                balance = float(balance_list["totalEquity"])
-                floor_balance = floor(balance)
-                target_capital = 500
-                excess_capital = abs(floor_balance - target_capital)
+                if initial_uid != os.getenv('MAIN_UID'):
+                    # Better if confirm no trades open.
+                    balance_response = session.get_wallet_balance(
+                        accountType="UNIFIED",
+                        coin="USDT",
+                    )
+                    #print(f"Rebalancing: {balance_response}")
+                    balance_list = balance_response["result"]["list"][0]
+                    balance = float(balance_list["totalEquity"])
+                    floor_balance = floor(balance)
+                    target_capital = 500
+                    excess_capital = abs(floor_balance - target_capital)
 
-                sub_account_balance = session.get_coin_balance(
-                    accountType="UNIFIED",
-                    coin="USDT",
-                )
-                uid = sub_account_balance['result']['memberId']
-                #print(f"Fetched Sub account uid: {uid}")
-                transferId = str(uuid.uuid4())
-                if floor_balance > target_capital: #Has Excess Capital
-                    try:
-                        session.create_universal_transfer(
-                            transferId = transferId,
-                            coin = "USDT",
-                            amount = str(excess_capital),
-                            fromMemberId = int(uid),
-                            toMemberId = int(os.getenv('MAIN_UID')), #Main UID
-                            fromAccountType = "UNIFIED",
-                            toAccountType = "UNIFIED",
-                        )
-                        print(f"Profit({excess_capital} USDT) Moved to Main Account from UID: {uid}")
-                    except Exception as e:
-                        print(f"Error while Line 481 Universal Transfer: {e}")
-                if floor_balance < target_capital: #Needs More Capital
-                    try:
-                        session = HTTP(
-                            testnet=False,
-                            api_key=os.getenv('API_KEY_0'),
-                            api_secret=os.getenv('API_SECRET_0'),
-                        )
-                        main_balance = session.get_coin_balance(
-                            accountType="UNIFIED",
-                            coin="USDT",
-                            memberId=int(os.getenv('MAIN_UID')),
-                        )
-                        #print(f"Fetched Main Account Balance: {main_balance}")
-                        if float(main_balance['result']['balance']['transferBalance']) > excess_capital:
-                            try:
+                    sub_account_balance = session.get_coin_balance(
+                        accountType="UNIFIED",
+                        coin="USDT",
+                    )
+                    uid = sub_account_balance['result']['memberId']
+                    #print(f"Fetched Sub account uid: {uid}")
+                    transferId = str(uuid.uuid4())
+                    if floor_balance > target_capital: #Has Excess Capital
+                        try:
+                            session.create_universal_transfer(
+                                transferId = transferId,
+                                coin = "USDT",
+                                amount = str(excess_capital),
+                                fromMemberId = int(uid),
+                                toMemberId = int(os.getenv('MAIN_UID')), #Main UID
+                                fromAccountType = "UNIFIED",
+                                toAccountType = "UNIFIED",
+                            )
+                            print(f"Profit({excess_capital} USDT) Moved to Main Account from UID: {uid}")
+                        except Exception as e:
+                            print(f"Error while Line 481 Universal Transfer: {e}")
+                    if floor_balance < target_capital: #Needs More Capital
+                        try:
+                            session = HTTP(
+                                testnet=False,
+                                api_key=os.getenv('API_KEY_0'),
+                                api_secret=os.getenv('API_SECRET_0'),
+                            )
+                            main_balance = session.get_coin_balance(
+                                accountType="UNIFIED",
+                                coin="USDT",
+                                memberId=int(os.getenv('MAIN_UID')),
+                            )
+                            #print(f"Fetched Main Account Balance: {main_balance}")
+                            if float(main_balance['result']['balance']['transferBalance']) > excess_capital:
+                                try:
 
-                                #print(f"The printed uuid: {transferId}")
-                                #print(f"The original variable uid{uid}")
-                                session.create_universal_transfer(
-                                    transferId = transferId,
-                                    coin = "USDT",
-                                    amount = str(excess_capital),
-                                    fromMemberId = int(os.getenv('MAIN_UID')),
-                                    toMemberId = int(uid),
-                                    fromAccountType = "UNIFIED",
-                                    toAccountType = "UNIFIED",
-                                )
-                                print(f"Loss Balance({excess_capital} USDT) Filled from Main Account to UID: {uid}")
-                            except Exception as e:
-                                print(f"Error while Line 508 Universal Transfer: {e}")
-                        else:
-                            print(f"Not enough balance in Main Account to fill Sub Account: {uid}")
-                    except Exception as e:
-                        print(f"Error while Line 496 Universal Transfer: {e}")
+                                    #print(f"The printed uuid: {transferId}")
+                                    #print(f"The original variable uid{uid}")
+                                    session.create_universal_transfer(
+                                        transferId = transferId,
+                                        coin = "USDT",
+                                        amount = str(excess_capital),
+                                        fromMemberId = int(os.getenv('MAIN_UID')),
+                                        toMemberId = int(uid),
+                                        fromAccountType = "UNIFIED",
+                                        toAccountType = "UNIFIED",
+                                    )
+                                    print(f"Loss Balance({excess_capital} USDT) Filled from Main Account to UID: {uid}")
+                                except Exception as e:
+                                    print(f"Error while Line 508 Universal Transfer: {e}")
+                            else:
+                                print(f"Not enough balance in Main Account to fill Sub Account: {uid}")
+                        except Exception as e:
+                            print(f"Error while Line 496 Universal Transfer: {e}")
 
         else:
             print(f"Simulated paper order: {order_type} - {side} {quantity} {ticker}")
