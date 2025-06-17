@@ -510,7 +510,7 @@ def execute_order(data):
                     balance_list = balance_response["result"]["list"][0]
                     balance = float(balance_list["totalEquity"])
                     floor_balance = floor(balance)
-                    target_capital = 500
+                    target_capital = 200
                     excess_capital = abs(floor_balance - target_capital)
 
                     sub_account_balance = session.get_coin_balance(
