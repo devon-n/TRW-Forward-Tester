@@ -89,7 +89,7 @@ def execute_order(data):
         # Update min qty and precision
         ticker = ticker.replace('.P', '')
         ticker = ticker + "T" if ticker.endswith("USD") else ticker
-        print(f"NEW ALERT\n-{order_type}-\n<<{strategy_name}>>\n{side} {quantity} {ticker}\n{leverage}x Leverage")
+        print(f"NEW ALERT: {strategy_name}\n{side} {quantity} {ticker}\n{leverage}x Leverage")
 
         #if ticker in minQtyDict:
             #if float(quantity) < float(minQtyDict[ticker]):
