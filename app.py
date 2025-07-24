@@ -11,7 +11,6 @@ load_dotenv()
 
 app = Flask(__name__)
 
-
 @lru_cache(maxsize=1)
 def get_whitelisted_ips():
     return set(os.environ.get('WHITELISTED_IPS', '').split(','))
