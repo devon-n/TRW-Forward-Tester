@@ -31,8 +31,9 @@ def get_data_from_mongodb():
 df = get_data_from_mongodb()
 print('Saving CSV')
 df.to_csv('test.csv', index=False)
+
 if len(df) == 0:
-    print("No trades in database check webhook settings, network access for database, .env file and render environment variables are correct")
+    print("\n\nNo trades in database check webhook settings, network access for database, .env file and render environment variables are correct\n\n")
     sys.exit()
 
 df['Time'] = pd.to_datetime(df['time'])
