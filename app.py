@@ -36,7 +36,11 @@ trades_collection = db.trades
 def record_trade(data, order_response):
     """Records trade to MongoDB with strategy information."""
     try:
-        trades_collection.insert_one({**order_response, **data})
+        doc = {}
+        if order_response and isinstance(order_response,dict):
+            doc.update(order_response)
+        doc.update(data)
+        trades_collection.insert_one(doc)
         # trades_collection.insert_one({
         #     "time": data["bar"]["time"],
         #     "strategy_name": data["strategyName"],
