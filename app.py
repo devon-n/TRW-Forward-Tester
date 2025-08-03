@@ -302,7 +302,6 @@ def execute_order(data):
                         "orderType": "Limit",
                         "qty": quantity,
                         "price": str(float(order_price) - 0.01),
-                        "timeInForce": "PostOnly",
                         "reduceOnly": bool(1)
                     }
                     order_response = session.place_order(**order_params)
@@ -314,7 +313,6 @@ def execute_order(data):
                         "orderType": "Limit",
                         "qty": quantity,
                         "price": str(float(order_price) + 0.01),
-                        "timeInForce": "PostOnly",
                         "reduceOnly": bool(1)
                     }
                     order_response = session.place_order(**order_params)
