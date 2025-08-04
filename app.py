@@ -6,34 +6,34 @@ from pymongo import MongoClient # type: ignore
 from dotenv import load_dotenv
 from functools import lru_cache
 from config import minQtyDict, precisionDecimalDict
-from binance_common.configuration import ConfigurationRestAPI
-from binance_common.constants import DERIVATIVES_TRADING_USDS_FUTURES_REST_API_PROD_URL
-from binance_sdk_derivatives_trading_usds_futures.derivatives_trading_usds_futures import DerivativesTradingUsdsFutures
-from binance_sdk_derivatives_trading_usds_futures.rest_api.models import ExchangeInformationResponse
+# from binance_common.configuration import ConfigurationRestAPI
+# from binance_common.constants import DERIVATIVES_TRADING_USDS_FUTURES_REST_API_PROD_URL
+# from binance_sdk_derivatives_trading_usds_futures.derivatives_trading_usds_futures import DerivativesTradingUsdsFutures
+# from binance_sdk_derivatives_trading_usds_futures.rest_api.models import ExchangeInformationResponse
 
 load_dotenv()
 
 app = Flask(__name__)
 
-logging.basicConfig(level=logging.INFO)
-configuration = ConfigurationRestAPI(api_key=os.getenv('B_API_KEY') or '', api_secret=os.getenv('B_API_SECRET'), base_path=DERIVATIVES_TRADING_USDS_FUTURES_REST_API_PROD_URL)
+# logging.basicConfig(level=logging.INFO)
+# configuration = ConfigurationRestAPI(api_key=os.getenv('B_API_KEY') or '', api_secret=os.getenv('B_API_SECRET'), base_path=DERIVATIVES_TRADING_USDS_FUTURES_REST_API_PROD_URL)
 
-client = DerivativesTradingUsdsFutures(config_rest_api=configuration)
+# client = DerivativesTradingUsdsFutures(config_rest_api=configuration)
 
-def account_information_v2():
-    try:
-        response = client.rest_api.account_information_v2()
+# def account_information_v2():
+#     try:
+#         response = client.rest_api.account_information_v2()
 
-        rate_limits = response.rate_limits
-        logging.info(f"account_information_v2() rate limits: {rate_limits}")
+#         rate_limits = response.rate_limits
+#         logging.info(f"account_information_v2() rate limits: {rate_limits}")
 
-        data = response.data()
-        logging.info(f"account_information_v2() response: {data}")
-    except Exception as e:
-        logging.error(f"account_information_v2() error: {e}")
+#         data = response.data()
+#         logging.info(f"account_information_v2() response: {data}")
+#     except Exception as e:
+#         logging.error(f"account_information_v2() error: {e}")
 
 
-account_information_v2()
+# account_information_v2()
 
 @lru_cache(maxsize=1)
 def get_whitelisted_ips():
@@ -112,17 +112,18 @@ def execute_order(data):
         if order_type == "REAL":
 
             # Initialize Binance client with environment variables
-            client = UMFutures(os.getenv('API_KEY'), os.getenv('API_SECRET'))
+            # client = UMFutures(os.getenv('API_KEY'), os.getenv('API_SECRET'))
             # client.futures_change_leverage(symbol=ticker, leverage=leverage)
             # client.futures_change_margin_type(symbol=ticker, marginType="ISOLATED")
             print(f"\nSending Order: {json.dumps(data)}\n")
 
-            order_response = client.new_order(
-                symbol=ticker,
-                side=side,
-                type="MARKET",
-                quantity=quantity
-                )
+            # order_response = client.new_order(
+            #     symbol=ticker,
+            #     side=side,
+            #     type="MARKET",
+            #     quantity=quantity
+            #     )
+            order_response = "TEST"
             print(f"Real order executed: {order_type} - {side} {quantity} {ticker} | {order_response}")
 
             # Get order price from trade response
