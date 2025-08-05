@@ -8,4 +8,4 @@ python-dotenv==0.21.1
 gunicorn==22.0.0
 dnspython==2.6.1
 binance-futures-connector==4.0.0
-streamlit
+streamlit==1.47.1
