@@ -1,45 +1,54 @@
 import json
+import traceback
 from config import minQtyDict, precisionDecimalDict
+from models.signal import CommentData, SignalPayload
 from services.trade_logger import record_trade
 
 
 def execute_order(data):
     try:
-        side = data["strategy"]["order_action"].upper()
-        quantity = data["strategy"]["order_contracts"]
-        ticker = data["ticker"]
-        leverage = int(data.get("leverage", 0))
-        order_type = data.get("order_type", "PAPER").upper()
+        signal = SignalPayload.model_validate_json(data)
+        side = signal.strategy.order_action.upper()
+        if isinstance(signal.comment_data, CommentData):
+            comment_data = signal.comment_data
 
         print(
-            f"Preparing order {order_type} - {side} {quantity} {ticker} with leverage {leverage}"
+            f"Preparing order {signal.order_type} - {side} {signal.strategy.order_contracts} {signal.ticker} with leverage {comment_data.leverage}"
         )
 
-        ticker = ticker.replace(".P", "")
+        ticker = signal.ticker.replace(".P", "")
         ticker = ticker + "T" if ticker.endswith("USD") else ticker
 
-        if ticker in minQtyDict and float(quantity) < float(minQtyDict[ticker]):
+        if ticker in minQtyDict and float(signal.strategy.order_contracts) < float(
+            minQtyDict[ticker]
+        ):
             quantity = minQtyDict[ticker]
 
         if ticker in precisionDecimalDict:
-            quantity = str(round(float(quantity), precisionDecimalDict[ticker]))
+            quantity = str(
+                round(
+                    float(signal.strategy.order_contracts), precisionDecimalDict[ticker]
+                )
+            )
 
-        data["strategy"]["order_contracts"] = quantity
+        data["strategy"]["order_contracts"] = signal.strategy.order_contracts
 
-        if order_type == "REAL":
+        if signal.order_type == "REAL":
             print(f"\nSending Order: {json.dumps(data)}\n")
-            # Placeholder for real Binance order logic
             order_response = "TEST"
             print(
-                f"Real order executed: {order_type} - {side} {quantity} {ticker} | {order_response}"
+                f"Real order executed: {signal.order_type} - {side} {signal.strategy.order_contracts} {ticker} | {order_response}"
             )
             record_trade(data, order_response)
         else:
-            print(f"Simulated paper order: {order_type} - {side} {quantity} {ticker}")
+            print(
+                f"Simulated paper order: {signal.order_type} - {side} {signal.strategy.order_contracts} {ticker}"
+            )
             record_trade(data, None)
 
         return True
     except Exception as e:
         record_trade(data, "Failed Real Order?")
         print(f"Failed Order: An exception occurred: {e}")
+        traceback.print_exc()
         return False

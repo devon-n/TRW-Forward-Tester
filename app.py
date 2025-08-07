@@ -17,13 +17,12 @@ def welcome():
 @whitelist_ip
 def webhook():
     """Handles incoming TradingView alerts via webhook and processes trades."""
-    data = json.loads(request.data)
-    print(f"\n data: {data}\n")
+    
     # if data['passphrase'] != os.getenv('WEBHOOK_PASSPHRASE'):
     # return jsonify({"code": "error", "message": "Invalid passphrase"}), 403
 
     # Execute or simulate the order
-    success = execute_order(data)
+    success = execute_order(request.data)
 
     if success:
         return jsonify({"code": "success", "message": "Order executed"})
