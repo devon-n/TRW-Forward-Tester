@@ -1,6 +1,15 @@
+from enum import Enum
 from typing import Optional, Union
 from pydantic import BaseModel, Field, model_validator, validator
 import json
+
+
+class OrderType(Enum):
+    Long = "Long"
+    Short = "Short"
+    TP = "Close entry(s) order strategy.close_0"
+    SL = "SL"
+    EXIT_SHORT = "Exit Short"
 
 
 class CommentData(BaseModel):
@@ -22,7 +31,7 @@ class Strategy(BaseModel):
     order_action: str
     order_contracts: float
     order_price: float
-    order_id: str
+    order_id: OrderType
     market_position: str
     market_position_size: float
     prev_market_position: str

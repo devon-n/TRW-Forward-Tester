@@ -1,7 +1,7 @@
 import json
 import os
 from flask import Flask, request, jsonify
-from services.orders_service import execute_order
+from services.orders.orders_service import execute_order
 from utils.ip_whitelist import whitelist_ip
 
 
