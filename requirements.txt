@@ -9,3 +9,4 @@ gunicorn==22.0.0
 dnspython==2.6.1
 binance-sdk-derivatives-trading-usds-futures
 streamlit
+pydantic
