@@ -51,7 +51,7 @@ class SignalPayload(BaseModel):
     strategy: Strategy
     passphrase: Optional[str] = ""
 
-    comment_data: Optional[CommentData] = Field(default=None, exclude=True)
+    comment_data: CommentData
 
     @model_validator(mode="after")
     def pase_comment_json(cls, model):
