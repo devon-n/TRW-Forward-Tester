@@ -6,6 +6,7 @@
   "timeframe": "{{interval}}",
   "ticker": "{{ticker}}",
   "leverage": "0",
+  "comment": "{{strategy.order.comment}}",
   "bar": {
     "time": "{{time}}",
     "open": "{{open}}",

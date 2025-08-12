@@ -12,9 +12,14 @@ class OrderId(Enum):
     EXIT_SHORT = "Exit Short"
 
 
+class OrderType(Enum):
+    MARKET = "MARKET"
+    LIMIT = "LIMIT"
+
+
 class CommentData(BaseModel):
     leverage: float
-    position_size: float
+    order_type: OrderType
 
 
 class Bar(BaseModel):

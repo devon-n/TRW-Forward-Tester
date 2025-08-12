@@ -27,6 +27,9 @@ def execute_order(data: bytes):
             )
             record_trade(data, order_response)
         else:
+            if is_open_order(signal.strategy.order_id):
+                open_test_order(signal)
+
             print(
                 f"Simulated paper order: {signal.order_type} - {side} {signal.strategy.order_contracts} {signal.ticker}"
             )

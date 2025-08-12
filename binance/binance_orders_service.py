@@ -33,7 +33,9 @@ def new_order(signal: SignalPayload):
         response = client.rest_api.new_order(
             symbol=signal.ticker,
             side=NewOrderSideEnum[signal.strategy.order_action.upper()],
-            type=FuturesOrderType.LIMIT.value,
+            type=FuturesOrderType[signal.comment_data.order_type.value].value,
+            quantity=signal.strategy.position_size,
+            price=signal.strategy.order_price,
         )
 
         rate_limits = response.rate_limits
@@ -56,7 +58,8 @@ def open_test_order(signal: SignalPayload):
             symbol=signal.ticker,
             side=TestOrderSideEnum[signal.strategy.order_action.upper()],
             type=FuturesOrderType.LIMIT.value,
-            quantity=signal.comment_data.position_size,
+            quantity=signal.strategy.position_size,
+            price=signal.strategy.order_price,
         )
 
         rate_limits = response.rate_limits
