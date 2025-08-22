@@ -13,6 +13,8 @@ import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime, timezone
 import time
+import psycopg2
+import pandas as pd
 
 load_dotenv()
 
@@ -34,6 +36,25 @@ def whitelist_ip(func):
             abort(403, description=message)
         return func(*args, **kwargs)
     return wrapper
+
+
+DB_CONN = os.getenv("DB_CONN")
+def get_latest_klines(symbol="BTCUSDT", interval="1", limit=200):
+    conn = psycopg2.connect(DB_CONN)
+    query = """
+        SELECT start_time, open, high, low, close, volume
+        FROM klines
+        WHERE symbol = %s AND interval = %s
+        ORDER BY start_time DESC
+        LIMIT %s;
+    """
+    df = pd.read_sql(query, conn, params=(symbol, interval, limit))
+    conn.close()
+    # Reverse so earliest -> latest
+    return df.iloc[::-1].reset_index(drop=True)
+
+df = get_latest_klines()
+print(df.tail())
 
 
 # Connect to MongoDB
