@@ -12,4 +12,3 @@ streamlit
 pybit
 gspread
 oauth2client
-psycopg2-binary
