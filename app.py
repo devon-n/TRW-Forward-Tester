@@ -15,6 +15,7 @@ from datetime import datetime, timezone
 import time
 import psycopg2
 import pandas as pd
+import pandas as ta
 
 load_dotenv()
 
@@ -39,6 +40,7 @@ def whitelist_ip(func):
 
 
 DB_CONN = os.getenv("DB_CONN")
+
 def get_latest_klines(symbol="BTCUSDT", interval="1", limit=200):
     conn = psycopg2.connect(DB_CONN)
     query = """
@@ -50,11 +52,53 @@ def get_latest_klines(symbol="BTCUSDT", interval="1", limit=200):
     """
     df = pd.read_sql(query, conn, params=(symbol, interval, limit))
     conn.close()
-    # Reverse so earliest -> latest
     return df.iloc[::-1].reset_index(drop=True)
 
-df = get_latest_klines()
-print(df.tail())
+def calculate_indicators(df):
+    df["ema_fast"] = ta.ema(df["close"], length=12)
+    df["ema_slow"] = ta.ema(df["close"], length=26)
+    macd = ta.macd(df["close"])
+    df = df.join(macd)
+    return df
+
+def check_signals(df):
+    latest = df.iloc[-1]
+    # Example: simple MACD+EMA entry
+    long_condition = (
+        latest["ema_fast"] > latest["ema_slow"] and
+        latest["MACD_12_26_9"] > latest["MACDs_12_26_9"]
+    )
+    short_condition = (
+        latest["ema_fast"] < latest["ema_slow"] and
+        latest["MACD_12_26_9"] < latest["MACDs_12_26_9"]
+    )
+    return long_condition, short_condition
+
+# === MAIN LOOP ===
+last_seen_candle = None
+
+while True:
+    df = get_latest_klines()
+    df = calculate_indicators(df)
+
+    latest_candle_time = df.iloc[-1]["start_time"]
+
+    # Run only if a NEW candle has appeared
+    if latest_candle_time != last_seen_candle:
+        last_seen_candle = latest_candle_time
+        long_signal, short_signal = check_signals(df)
+
+        if long_signal:
+            print("🚀 Long Signal")
+            # place_order("Buy")
+        elif short_signal:
+            print("🔻 Short Signal")
+            # place_order("Sell")
+        else:
+            print("No trade this candle")
+
+    # Sleep until next check (e.g. every 10 seconds)
+    time.sleep(10)
 
 
 # Connect to MongoDB
