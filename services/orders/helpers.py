@@ -17,4 +17,4 @@ def format_position_size(ticker: str, order_contracts: float):
 
 
 def is_open_order(order_id: OrderId):
-    return order_id.value == OrderId.BUY or order_id.value == OrderId.SELL
+    return order_id.value == OrderId.BUY.value or order_id.value == OrderId.SELL.value
