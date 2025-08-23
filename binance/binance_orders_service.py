@@ -1,3 +1,4 @@
+import json
 import math
 from binance.enums import FuturesOrderType
 from models.signal import SignalPayload
@@ -30,6 +31,12 @@ client = DerivativesTradingUsdsFutures(config_rest_api=configuration_rest_api)
 
 def new_order(signal: SignalPayload):
     try:
+        print(json.dumps(signal.model_dump(), indent=2, default=str))
+
+        client.rest_api.change_initial_leverage(
+            symbol=signal.ticker, leverage=math.ceil(signal.comment_data.leverage)
+        )
+
         response = client.rest_api.new_order(
             symbol=signal.ticker,
             side=NewOrderSideEnum[signal.strategy.order_action.upper()],
@@ -50,7 +57,7 @@ def new_order(signal: SignalPayload):
 
 def open_test_order(signal: SignalPayload):
     try:
-        print(signal.model_dump)
+        print(json.dumps(signal.model_dump(), indent=2, default=str))
         client.rest_api.change_initial_leverage(
             symbol=signal.ticker, leverage=math.ceil(signal.comment_data.leverage)
         )
