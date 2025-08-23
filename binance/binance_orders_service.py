@@ -50,6 +50,7 @@ def new_order(signal: SignalPayload):
 
 def open_test_order(signal: SignalPayload):
     try:
+        print(signal.model_dump)
         client.rest_api.change_initial_leverage(
             symbol=signal.ticker, leverage=math.ceil(signal.comment_data.leverage)
         )
@@ -57,7 +58,7 @@ def open_test_order(signal: SignalPayload):
         response = client.rest_api.test_order(
             symbol=signal.ticker,
             side=TestOrderSideEnum[signal.strategy.order_action.upper()],
-            type=FuturesOrderType.LIMIT.value,
+            type=FuturesOrderType[signal.comment_data.order_type.value].value,
             quantity=signal.strategy.position_size,
             price=signal.strategy.order_price,
         )
