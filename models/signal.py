@@ -58,7 +58,7 @@ class SignalPayload(BaseModel):
 
     comment_data: CommentData
 
-    @model_validator(mode="after")
+    @model_validator(mode="before")
     def pase_comment_json(cls, model):
         if model.comment:
             try:
