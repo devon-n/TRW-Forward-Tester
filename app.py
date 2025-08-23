@@ -9,8 +9,6 @@ app = Flask(__name__)
 
 api_key=os.getenv("B_API_KEY", ""),
 api_secret=os.getenv("B_API_SECRET", ""),
-print(api_key)
-print(api_secret)
 @app.route("/")
 def welcome():
     return ""

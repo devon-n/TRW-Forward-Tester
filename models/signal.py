@@ -59,14 +59,15 @@ class SignalPayload(BaseModel):
     comment_data: CommentData
 
     @model_validator(mode="before")
-    def pase_comment_json(cls, model):
-        if model.comment:
+    def pase_comment_json(cls, model: dict):
+        comment = model.get("comment")
+        if comment:
             try:
                 print("model.comment")
-                print(model.comment)
-                parsed = json.loads(model.comment)
+                print(comment)
+                parsed = json.loads(comment)
                 if isinstance(parsed, dict):
-                    model.comment_data = CommentData(**parsed)
+                    model["comment_data"] = CommentData(**parsed)
             except Exception:
                 print("Not Json")
         return model
