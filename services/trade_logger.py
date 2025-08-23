@@ -1,6 +1,7 @@
 import json
 import traceback
-from db import trades_collection
+
+from db import get_trades_collection
 
 
 def record_trade(data: bytes, order_response):
@@ -10,6 +11,7 @@ def record_trade(data: bytes, order_response):
         if order_response and isinstance(order_response, dict):
             doc.update(order_response)
         doc.update(json.loads(data))
+        trades_collection = get_trades_collection()
         trades_collection.insert_one(doc)
     except Exception as e:
         print(f"Failed Order: An exception occurred: {e}")

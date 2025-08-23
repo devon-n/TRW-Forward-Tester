@@ -63,8 +63,6 @@ class SignalPayload(BaseModel):
         comment = model.get("comment")
         if comment:
             try:
-                print("model.comment")
-                print(comment)
                 parsed = json.loads(comment)
                 if isinstance(parsed, dict):
                     model["comment_data"] = CommentData(**parsed)
