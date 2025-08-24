@@ -1,5 +1,6 @@
 import json
 import math
+import time
 from binance.enums import FuturesOrderType
 from models.signal import SignalPayload
 import os
@@ -58,9 +59,15 @@ def new_order(signal: SignalPayload):
 def open_test_order(signal: SignalPayload):
     try:
         print(json.dumps(signal.model_dump(), indent=2, default=str))
-        client.rest_api.change_initial_leverage(
+        change_levarege_response = client.rest_api.change_initial_leverage(
             symbol=signal.ticker, leverage=math.ceil(signal.comment_data.leverage)
         )
+
+        change_response_rate_limmits = change_levarege_response.rate_limits
+        logging.info(f"change_initial_leverage rate limits: {change_response_rate_limmits}")
+        logging.info(f"change_initial_leverage response: {change_levarege_response.data}")
+
+        time.sleep(0.2)
 
         response = client.rest_api.test_order(
             symbol=signal.ticker,

@@ -8,7 +8,6 @@ from services.trade_logger import record_trade
 
 def execute_order(data: bytes):
     try:
-        print(data)
         signal = SignalPayload.model_validate_json(data)
         side = signal.strategy.order_action.upper()
 
