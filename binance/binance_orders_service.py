@@ -42,7 +42,7 @@ def new_order(signal: SignalPayload):
             symbol=signal.ticker,
             side=NewOrderSideEnum[signal.strategy.order_action.upper()],
             type=FuturesOrderType[signal.comment_data.order_type.value].value,
-            quantity=signal.strategy.position_size,
+            quantity=signal.strategy.order_contracts,
             price=signal.strategy.order_price,
         )
 
@@ -73,7 +73,7 @@ def open_test_order(signal: SignalPayload):
             symbol=signal.ticker,
             side=TestOrderSideEnum[signal.strategy.order_action.upper()],
             type=FuturesOrderType[signal.comment_data.order_type.value].value,
-            quantity=signal.strategy.position_size,
+            quantity=signal.strategy.order_contracts,
             price=signal.strategy.order_price,
         )
 
