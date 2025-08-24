@@ -14,6 +14,7 @@ from binance_sdk_derivatives_trading_usds_futures.derivatives_trading_usds_futur
 from binance_sdk_derivatives_trading_usds_futures.rest_api.models import (
     TestOrderSideEnum,
     NewOrderSideEnum,
+    TestOrderTimeInForceEnum,
 )
 
 
@@ -64,8 +65,12 @@ def open_test_order(signal: SignalPayload):
         )
 
         change_response_rate_limmits = change_levarege_response.rate_limits
-        logging.info(f"change_initial_leverage rate limits: {change_response_rate_limmits}")
-        logging.info(f"change_initial_leverage response: {change_levarege_response.data}")
+        logging.info(
+            f"change_initial_leverage rate limits: {change_response_rate_limmits}"
+        )
+        logging.info(
+            f"change_initial_leverage response: {change_levarege_response.data}"
+        )
 
         time.sleep(0.2)
 
@@ -75,6 +80,7 @@ def open_test_order(signal: SignalPayload):
             type=FuturesOrderType[signal.comment_data.order_type.value].value,
             quantity=signal.strategy.order_contracts,
             price=signal.strategy.order_price,
+            time_in_force=TestOrderTimeInForceEnum.GTC,
         )
 
         rate_limits = response.rate_limits
