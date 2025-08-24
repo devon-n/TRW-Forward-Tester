@@ -18,7 +18,7 @@ def execute_order(data: bytes):
         if signal.order_type == "REAL":
 
             if is_open_order(signal.strategy.order_id):
-                open_test_order(signal)
+                new_order(signal)
 
             order_response = "TEST"
             print(
