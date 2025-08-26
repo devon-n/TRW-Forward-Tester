@@ -39,10 +39,8 @@ def new_order(signal: SignalPayload):
         change_levarege_response = client.rest_api.change_initial_leverage(
             symbol=signal.ticker, leverage=math.ceil(signal.comment_data.leverage)
         )
-
-        change_response_rate_limmits = change_levarege_response.rate_limits
         logging.info(
-            f"change_initial_leverage rate limits: {change_response_rate_limmits}"
+            f"change_initial_leverage rate limits: {change_levarege_response.rate_limits}"
         )
         logging.info(
             f"change_initial_leverage response: {change_levarege_response.data}"
@@ -56,12 +54,24 @@ def new_order(signal: SignalPayload):
             price=signal.strategy.order_price,
             time_in_force=NewOrderTimeInForceEnum.GTC,
         )
+        logging.info(f"new_order() rate limits: {response.rate_limits}")
+        logging.info(f"new_order() response: {response.data()}")
 
-        rate_limits = response.rate_limits
-        logging.info(f"new_order() rate limits: {rate_limits}")
-
-        data = response.data()
-        logging.info(f"new_order() response: {data}")
+        stop_side = (
+            NewOrderSideEnum.SELL
+            if signal.strategy.order_action.upper() == "BUY"
+            else NewOrderSideEnum.BUY
+        )
+        sl_resp = client.rest_api.new_order(
+            symbol=signal.ticker,
+            side=stop_side,
+            type=FuturesOrderType.STOP_MARKET.value,
+            stop_price=signal.comment_data.sl,
+            close_position="true",
+            time_in_force=NewOrderTimeInForceEnum.GTC,
+        )
+        logging.info(f"stop_loss() rate limits: {sl_resp.rate_limits}")
+        logging.info(f"stop_loss() response: {sl_resp.data()}")
 
     except Exception as e:
         logging.error(f"new_order() error: {e}")
@@ -70,19 +80,16 @@ def new_order(signal: SignalPayload):
 def open_test_order(signal: SignalPayload):
     try:
         print(json.dumps(signal.model_dump(), indent=2, default=str))
+
         change_levarege_response = client.rest_api.change_initial_leverage(
             symbol=signal.ticker, leverage=math.ceil(signal.comment_data.leverage)
         )
-
-        change_response_rate_limmits = change_levarege_response.rate_limits
         logging.info(
-            f"change_initial_leverage rate limits: {change_response_rate_limmits}"
+            f"change_initial_leverage rate limits: {change_levarege_response.rate_limits}"
         )
         logging.info(
             f"change_initial_leverage response: {change_levarege_response.data}"
         )
-
-        time.sleep(0.2)
 
         response = client.rest_api.test_order(
             symbol=signal.ticker,
@@ -92,11 +99,24 @@ def open_test_order(signal: SignalPayload):
             price=signal.strategy.order_price,
             time_in_force=TestOrderTimeInForceEnum.GTC,
         )
+        logging.info(f"test_order() rate limits: {response.rate_limits}")
+        logging.info(f"test_order() response: {response.data()}")
 
-        rate_limits = response.rate_limits
-        logging.info(f"test_order() rate limits: {rate_limits}")
+        stop_side = (
+            TestOrderSideEnum.SELL
+            if signal.strategy.order_action.upper() == "BUY"
+            else TestOrderSideEnum.BUY
+        )
+        sl_resp = client.rest_api.test_order(
+            symbol=signal.ticker,
+            side=stop_side,
+            type=FuturesOrderType.STOP_MARKET.value,
+            stop_price=signal.comment_data.sl,
+            close_position="true",
+            time_in_force=TestOrderTimeInForceEnum.GTC,
+        )
+        logging.info(f"stop_loss() rate limits: {sl_resp.rate_limits}")
+        logging.info(f"stop_loss() response: {sl_resp.data()}")
 
-        data = response.data()
-        logging.info(f"test_order() response: {data}")
     except Exception as e:
         logging.error(f"test_order() error: {e}")

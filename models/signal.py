@@ -20,6 +20,8 @@ class OrderType(Enum):
 class CommentData(BaseModel):
     leverage: float
     order_type: OrderType
+    sl: float
+
 
 
 class Bar(BaseModel):
