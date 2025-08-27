@@ -18,11 +18,10 @@ class OrderType(Enum):
 
 
 class CommentData(BaseModel):
-    leverage: float
-    order_type: OrderType
+    leverage: float = 0
+    order_type: OrderType = OrderType.LIMIT
     sl: Optional[float] = None
     tp: Optional[float] = None
-
 
 
 class Bar(BaseModel):

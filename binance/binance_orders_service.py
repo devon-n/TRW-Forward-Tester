@@ -2,6 +2,7 @@ import json
 import math
 import time
 from binance.enums import FuturesOrderType
+from binance.helpers import get_stop_side
 from models.signal import SignalPayload
 import os
 import logging
@@ -57,21 +58,44 @@ def new_order(signal: SignalPayload):
         logging.info(f"new_order() rate limits: {response.rate_limits}")
         logging.info(f"new_order() response: {response.data()}")
 
-        stop_side = (
-            NewOrderSideEnum.SELL
-            if signal.strategy.order_action.upper() == "BUY"
-            else NewOrderSideEnum.BUY
-        )
+        stop_side = get_stop_side(signal.strategy.order_action)
         sl_resp = client.rest_api.new_order(
             symbol=signal.ticker,
             side=stop_side,
             type=FuturesOrderType.STOP_MARKET.value,
             stop_price=signal.comment_data.sl,
             close_position="true",
-            time_in_force=NewOrderTimeInForceEnum.GTC,
         )
         logging.info(f"stop_loss() rate limits: {sl_resp.rate_limits}")
         logging.info(f"stop_loss() response: {sl_resp.data()}")
+
+    except Exception as e:
+        logging.error(f"new_order() error: {e}")
+
+
+def tp_close_order(signal: SignalPayload):
+    try:
+        print(json.dumps(signal.model_dump(), indent=2, default=str))
+
+        stop_side = get_stop_side(signal.strategy.order_action)
+        response = client.rest_api.new_order(
+            symbol=signal.ticker,
+            side=stop_side,
+            type=FuturesOrderType.TAKE_PROFIT_MARKET.value,
+            stop_price=signal.comment_data.tp,
+            quantity=signal.strategy.order_contracts,
+            reduce_only="true",
+        )
+        logging.info(f"tp_close_order() rate limits: {response.rate_limits}")
+        logging.info(f"tp_close_order() response: {response.data()}")
+
+    except Exception as e:
+        logging.error(f"tp_close_order() error: {e}")
+
+
+def sl_close_order(signal: SignalPayload):
+    try:
+        print(json.dumps(signal.model_dump(), indent=2, default=str))
 
     except Exception as e:
         logging.error(f"new_order() error: {e}")

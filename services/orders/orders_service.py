@@ -1,8 +1,8 @@
 import traceback
 
-from binance.binance_orders_service import new_order, open_test_order
+from binance.binance_orders_service import new_order, open_test_order, tp_close_order
 from models.signal import SignalPayload
-from services.orders.helpers import format_position_size, is_open_order
+from services.orders.helpers import format_position_size, is_open_order, is_tp_order
 from services.trade_logger import record_trade
 
 
@@ -19,6 +19,8 @@ def execute_order(data: bytes):
 
             if is_open_order(signal.strategy.order_id):
                 new_order(signal)
+            elif is_tp_order(signal.strategy.order_id):
+                tp_close_order(signal)
 
             order_response = "TEST"
             print(
