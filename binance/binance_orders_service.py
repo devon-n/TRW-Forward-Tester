@@ -117,7 +117,7 @@ def be_close_order(signal: SignalPayload):
         logging.info(f"be_close_order() rate limits: {response.rate_limits}")
         logging.info(f"be_close_order() response: {response.data()}")
 
-        cancel_open_orders(signal.ticker)
+        # cancel_open_orders(signal.ticker)
     except Exception as e:
         logging.error(f"be_close_order() error: {e}")
 
