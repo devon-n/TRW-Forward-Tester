@@ -108,7 +108,7 @@ def be_close_order(signal: SignalPayload):
 
         response = client.rest_api.new_order(
             symbol=signal.ticker,
-            side=NewOrderSideEnum[signal.strategy.order_action],
+            side=NewOrderSideEnum[signal.strategy.order_action.upper()],
             type=FuturesOrderType.STOP_MARKET.value,
             stop_price=signal.comment_data.sl,
             close_position="true",
