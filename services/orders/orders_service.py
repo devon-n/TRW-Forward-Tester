@@ -16,16 +16,12 @@ def execute_order(data: bytes):
         )
 
         if signal.order_type == "REAL":
-
+            order_response = "No Trade Met"
             if is_open_order(signal.strategy.order_id):
-                new_order(signal)
+                order_response = new_order(signal)
             elif is_tp_order(signal.strategy.order_id):
-                tp_close_order(signal)
+                order_response = tp_close_order(signal)
 
-            order_response = "TEST"
-            print(
-                f"Real order executed: {signal.order_type} - {side} {signal.strategy.order_contracts} {signal.ticker} | {order_response}"
-            )
             record_trade(data, order_response)
         else:
             if is_open_order(signal.strategy.order_id):
