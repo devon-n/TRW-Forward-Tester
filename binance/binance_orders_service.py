@@ -83,9 +83,8 @@ def tp_close_order(signal: SignalPayload):
         size = get_position_size(client=client, ticker=signal.ticker)
         if size == 0:
             logging.info("Already flat.")
-            cansel_open_orders(signal.ticker)
+            cancel_open_orders(signal.ticker)
             return
-
         stop_side = get_stop_side(signal.strategy.order_action)
         response = client.rest_api.new_order(
             symbol=signal.ticker,
@@ -98,17 +97,29 @@ def tp_close_order(signal: SignalPayload):
         logging.info(f"tp_close_order() rate limits: {response.rate_limits}")
         logging.info(f"tp_close_order() response: {response.data()}")
 
-        cansel_open_orders(signal.ticker)
+        cancel_open_orders(signal.ticker)
     except Exception as e:
         logging.error(f"tp_close_order() error: {e}")
 
 
-def sl_close_order(signal: SignalPayload):
+def be_close_order(signal: SignalPayload):
     try:
         print(json.dumps(signal.model_dump(), indent=2, default=str))
 
+        stop_side = get_stop_side(signal.strategy.order_action)
+        response = client.rest_api.new_order(
+            symbol=signal.ticker,
+            side=stop_side,
+            type=FuturesOrderType.STOP_MARKET.value,
+            stop_price=signal.comment_data.sl,
+            close_position="true",
+        )
+        logging.info(f"be_close_order() rate limits: {response.rate_limits}")
+        logging.info(f"be_close_order() response: {response.data()}")
+
+        cancel_open_orders(signal.ticker)
     except Exception as e:
-        logging.error(f"new_order() error: {e}")
+        logging.error(f"be_close_order() error: {e}")
 
 
 def open_test_order(signal: SignalPayload):
@@ -156,7 +167,7 @@ def open_test_order(signal: SignalPayload):
         logging.error(f"test_order() error: {e}")
 
 
-def cansel_open_orders(ticker: str):
+def cancel_open_orders(ticker: str):
     close_orders_response = client.rest_api.cancel_all_open_orders(symbol=ticker)
     logging.info(f"close_position() rate limits: {close_orders_response.rate_limits}")
     logging.info(f"close_position() response: {close_orders_response.data()}")

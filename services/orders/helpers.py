@@ -24,5 +24,5 @@ def is_tp_order(order_id: OrderId):
     return order_id.value == OrderId.TP.value
 
 
-def is_sl_order(order_id: OrderId):
+def is_be_order(order_id: OrderId):
     return order_id.value == OrderId.SL.value
