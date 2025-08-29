@@ -106,6 +106,8 @@ def be_close_order(signal: SignalPayload):
     try:
         print(json.dumps(signal.model_dump(), indent=2, default=str))
 
+        cancel_open_orders(signal.ticker)
+
         response = client.rest_api.new_order(
             symbol=signal.ticker,
             side=NewOrderSideEnum[signal.strategy.order_action.upper()],
