@@ -89,7 +89,7 @@ def tp_close_order(signal: SignalPayload):
         response = client.rest_api.new_order(
             symbol=signal.ticker,
             side=stop_side,
-            type=FuturesOrderType.TAKE_PROFIT_MARKET.value,
+            type=FuturesOrderType.MARKET.value,
             # stop_price=signal.comment_data.tp,
             quantity=size,
             reduce_only="true",
