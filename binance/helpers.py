@@ -12,8 +12,13 @@ def get_stop_side(order_action: str):
 
 
 def get_position_size(client: DerivativesTradingUsdsFutures, ticker: str):
-    position_size = (
-        client.rest_api.position_information_v3(symbol=ticker).data().position_amt
-    )
-    amt = float(position_size or 0)
-    return abs(amt)
+    data = client.rest_api.position_information_v3(symbol=ticker).data()
+
+    positions = data if isinstance(data, list) else [data]
+
+    for pos in positions:
+        if getattr(pos, "symbol", None) == ticker:
+            amt = float(getattr(pos, "position_amt", 0) or 0)
+            return abs(amt)
+
+    return 0.0
