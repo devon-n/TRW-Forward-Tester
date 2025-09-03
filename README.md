@@ -4,14 +4,14 @@
 - Forward-Tester checks if real trade or not
 
 - If real trade:
-    - Executes trade on binance
+    - Executes trade on Bybit
 
 - Record trade in mongo db
 
 
-# Update Minimum Quantities or Precisions for Binance Orders
+# Update Minimum Quantities or Precisions for Bybit Orders
 - Update in `config`
-- Add the the symbol and the minimum quantity or minimum precision
+- Add the symbol and the minimum quantity or minimum precision
 
 
 ## Keep all trading logic in TV
@@ -38,4 +38,3 @@ to
 ```json
 "order_type": "REAL"
 ```
-
