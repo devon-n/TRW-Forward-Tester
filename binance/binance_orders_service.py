@@ -38,6 +38,8 @@ def new_order(signal: SignalPayload) -> NewOrderResponse:
     try:
         print(json.dumps(signal.model_dump(), indent=2, default=str))
 
+        cancel_open_orders(signal.ticker)
+
         change_levarege_response = client.rest_api.change_initial_leverage(
             symbol=signal.ticker, leverage=math.ceil(signal.comment_data.leverage)
         )
@@ -53,7 +55,7 @@ def new_order(signal: SignalPayload) -> NewOrderResponse:
             side=NewOrderSideEnum[signal.strategy.order_action.upper()],
             type=FuturesOrderType[signal.comment_data.order_type.value].value,
             quantity=signal.strategy.order_contracts,
-            price=signal.strategy.order_price,
+            price=signal.comment_data.limit_price,
             time_in_force=NewOrderTimeInForceEnum.GTC,
         )
         logging.info(f"new_order() rate limits: {response.rate_limits}")

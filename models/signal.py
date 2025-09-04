@@ -22,6 +22,7 @@ class CommentData(BaseModel):
     order_type: OrderType = OrderType.LIMIT
     sl: float | None = None
     tp: float | None = None
+    limit_price: float | None = None
 
 
 class Bar(BaseModel):
