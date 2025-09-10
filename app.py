@@ -72,6 +72,7 @@ def execute_order(data):
         ticker = data['ticker']
         leverage = int(data.get('leverage', 0))  # Default leverage to 0 if not provided
         order_type = data.get('order_type', 'PAPER').upper()  # Default to paper trading
+        exchange = data.get('exchange', 'BINANCE')
         print(f"Preparing order {order_type} - {side} {quantity} {ticker} with leverage {leverage}")
 
         # Update min qty and precision
@@ -87,37 +88,47 @@ def execute_order(data):
         data['strategy']['order_contracts'] = quantity
 
         if order_type == "REAL":
+            if exchange == "BYBIT":
+                # Initialize Bybit HTTP with environment variables
+                session = HTTP(
+                    testnet=False,
+                    api_key=os.getenv('API_KEY'),
+                    api_secret=os.getenv('API_SECRET'),
+                )
+                print(f"\nSending Order: {json.dumps(data)}\n")
 
-            # Initialize Bybit HTTP with environment variables
-            session = HTTP(
-                testnet=False,
-                api_key=os.getenv('API_KEY'),
-                api_secret=os.getenv('API_SECRET'),
-            )
-            # Initialize Binance client with environment variables
-            # client = UMFutures(os.getenv('API_KEY'), os.getenv('API_SECRET'))
-            # client.futures_change_leverage(symbol=ticker, leverage=leverage)
-            # client.futures_change_margin_type(symbol=ticker, marginType="ISOLATED")
-            print(f"\nSending Order: {json.dumps(data)}\n")
+                order_response = session.place_order(
+                    category="linear",
+                    symbol=ticker,
+                    side=side,
+                    orderType="Market",
+                    qty=quantity,
+                )
+                print(f"Real order executed: {order_type} - {side} {quantity} {ticker} | {order_response}")
 
-            order_response = session.place_order(
-                category="linear",
-                symbol=ticker,
-                side=side,
-                orderType="Market",
-                qty=quantity,
-            )
+                # Get order price from trade response
+                record_trade(data, order_response)
 
-            # order_response = client.new_order(
-            #    symbol=ticker,
-            #    side=side,
-            #    type="MARKET",
-            #    quantity=quantity
-            #    )
-            print(f"Real order executed: {order_type} - {side} {quantity} {ticker} | {order_response}")
+            elif exchange == "BINANCE":
+                # Initialize Binance client with environment variables
+                client = UMFutures(os.getenv('API_KEY'), os.getenv('API_SECRET'))
+                client.futures_change_leverage(symbol=ticker, leverage=leverage)
+                client.futures_change_margin_type(symbol=ticker, marginType="ISOLATED")
+                print(f"\nSending Order: {json.dumps(data)}\n")
 
-            # Get order price from trade response
-            record_trade(data, order_response)
+                order_response = client.new_order(
+                    symbol=ticker,
+                    side=side,
+                    type="MARKET",
+                    quantity=quantity
+                    )
+                print(f"Real order executed: {order_type} - {side} {quantity} {ticker} | {order_response}")
+
+                # Get order price from trade response
+                record_trade(data, order_response)
+
+            else:
+                print("Execution Error: No exchange value matching Bybit or Binance")
         else:
             print(f"Simulated paper order: {order_type} - {side} {quantity} {ticker}")
             record_trade(data, None)
