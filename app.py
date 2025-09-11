@@ -144,6 +144,7 @@ def execute_order(data):
         else:
             print("Execution Error: No exchange value matching Bybit or Binance")
     else:
+        side = data['strategy']['order_action'].upper()
         print(f"Simulated paper order: {order_type} - {side} {quantity} {ticker}")
         record_trade(data, None)
     return True
