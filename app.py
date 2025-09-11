@@ -65,7 +65,7 @@ def record_trade(data, order_response):
 
 
 def execute_order(data):
-    """Executes a real Binance order or simulates it for paper trading."""
+    """Executes a real Bybit/Binance order or simulates it for paper trading."""
     try:
         side = data['strategy']['order_action'][0].upper() + data['strategy']['order_action'][1:]
         quantity = data['strategy']['order_contracts']
@@ -112,8 +112,8 @@ def execute_order(data):
             elif exchange == "BINANCE":
                 # Initialize Binance client with environment variables
                 client = UMFutures(os.getenv('API_KEY'), os.getenv('API_SECRET'))
-                client.futures_change_leverage(symbol=ticker, leverage=leverage)
-                client.futures_change_margin_type(symbol=ticker, marginType="ISOLATED")
+                # client.futures_change_leverage(symbol=ticker, leverage=leverage)
+                # client.futures_change_margin_type(symbol=ticker, marginType="ISOLATED")
                 print(f"\nSending Order: {json.dumps(data)}\n")
 
                 order_response = client.new_order(
@@ -126,7 +126,6 @@ def execute_order(data):
 
                 # Get order price from trade response
                 record_trade(data, order_response)
-
             else:
                 print("Execution Error: No exchange value matching Bybit or Binance")
         else:
