@@ -94,8 +94,8 @@ def execute_order(data):
                 # Initialize Bybit HTTP with environment variables
                 session = HTTP(
                     testnet=False,
-                    api_key=os.getenv('API_KEY'),
-                    api_secret=os.getenv('API_SECRET'),
+                    api_key=os.getenv('API_KEY_12'),
+                    api_secret=os.getenv('API_SECRET_12'),
                 )
                 print(f"\nSending Order: {json.dumps(data)}\n")
 
