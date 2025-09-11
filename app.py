@@ -66,29 +66,31 @@ def record_trade(data, order_response):
 
 def execute_order(data):
     """Executes a real Bybit/Binance order or simulates it for paper trading."""
-    try:
-        side = data['strategy']['order_action'][0].upper() + data['strategy']['order_action'][1:]
-        quantity = data['strategy']['order_contracts']
-        ticker = data['ticker']
-        leverage = int(data.get('leverage', 0))  # Default leverage to 0 if not provided
-        order_type = data.get('order_type', 'PAPER').upper()  # Default to paper trading
-        exchange = data.get('exchange', 'BINANCE')
-        print(f"Preparing order {order_type} - {side} {quantity} {ticker} with leverage {leverage}")
+    quantity = data['strategy']['order_contracts']
+    ticker = data['ticker']
+    leverage = int(data.get('leverage', 0))  # Default leverage to 0 if not provided
+    order_type = data.get('order_type', 'PAPER').upper()  # Default to paper trading
+    exchange = data.get('exchange', 'BYBIT')
 
-        # Update min qty and precision
-        ticker = ticker.replace('.P', '')
-        ticker = ticker + "T" if ticker.endswith("USD") else ticker
-        if ticker in minQtyDict:
-            if float(quantity) < float(minQtyDict[ticker]):
-                quantity = minQtyDict[ticker]
+    # Update min qty and precision
+    ticker = ticker.replace('.P', '')
+    ticker = ticker + "T" if ticker.endswith("USD") else ticker
+    if ticker in minQtyDict:
+        if float(quantity) < float(minQtyDict[ticker]):
+            quantity = minQtyDict[ticker]
 
-        if ticker in precisionDecimalDict:
-            quantity = str(round(float(quantity), precisionDecimalDict[ticker]))
+    if ticker in precisionDecimalDict:
+        quantity = str(round(float(quantity), precisionDecimalDict[ticker]))
 
-        data['strategy']['order_contracts'] = quantity
+    data['strategy']['order_contracts'] = quantity
 
-        if order_type == "REAL":
-            if exchange == "BYBIT":
+    if order_type == "REAL":
+        if exchange == "BYBIT":
+            try:
+                # Collect Side Data Matched for Bybit's API
+                side = data['strategy']['order_action'][0].upper() + data['strategy']['order_action'][1:]
+                print(f"Preparing order for Bybit {order_type} - {side} {quantity} {ticker} with leverage {leverage}")
+
                 # Initialize Bybit HTTP with environment variables
                 session = HTTP(
                     testnet=False,
@@ -108,8 +110,17 @@ def execute_order(data):
 
                 # Get order price from trade response
                 record_trade(data, order_response)
+            except Exception as e:
+                record_trade(data, "Failed Real Order?")
+                print(f"Failed Order(Bybit): An exception occurred: {e}")
+                return False
 
-            elif exchange == "BINANCE":
+        elif exchange == "BINANCE":
+            try:
+                # Collect Side Data Matched for Binance's API
+                side = data['strategy']['order_action'].upper()
+                print(f"Preparing order {order_type} - {side} {quantity} {ticker} with leverage {leverage}")
+
                 # Initialize Binance client with environment variables
                 client = UMFutures(os.getenv('API_KEY'), os.getenv('API_SECRET'))
                 # client.futures_change_leverage(symbol=ticker, leverage=leverage)
@@ -126,16 +137,16 @@ def execute_order(data):
 
                 # Get order price from trade response
                 record_trade(data, order_response)
-            else:
-                print("Execution Error: No exchange value matching Bybit or Binance")
+            except Exception as e:
+                record_trade(data, "Failed Real Order?")
+                print(f"Failed Order(Binance): An exception occurred: {e}")
+                return False
         else:
-            print(f"Simulated paper order: {order_type} - {side} {quantity} {ticker}")
-            record_trade(data, None)
-        return True
-    except Exception as e:
-        record_trade(data, "Failed Real Order?")
-        print(f"Failed Order: An exception occurred: {e}")
-        return False
+            print("Execution Error: No exchange value matching Bybit or Binance")
+    else:
+        print(f"Simulated paper order: {order_type} - {side} {quantity} {ticker}")
+        record_trade(data, None)
+    return True
 
 
 @app.route('/')
