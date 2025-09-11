@@ -4,12 +4,12 @@
 - Forward-Tester checks if real trade or not
 
 - If real trade:
-    - Executes trade on Bybit
+    - Executes trade on Binance/Bybit
 
-- Record trade in mongo db
+- Records trade in Mongo DB
 
 
-# Update Minimum Quantities or Precisions for Bybit Orders
+# Update Minimum Quantities or Precisions for Binance/Bybit Orders
 - Update in `config`
 - Add the symbol and the minimum quantity or minimum precision
 
@@ -19,7 +19,7 @@ The following can change
 - Position size?
 - When to cut a strategy
 - If paper or real strategy
-- When implementing in pinescript, take note of order quantity precision from binance
+- When implementing in pinescript, take note of order quantity precision from Binance/Bybit
 
 ## Keep all reporting and executing logic here
 It might be better keeping position sizing and account balances here
