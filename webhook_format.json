@@ -1,11 +1,11 @@
 {
-  "strategyName": "Testing",
-  "order_type": "REAL",
+  "strategyName": "_______",
+  "order_type": "PAPER",
   "time": "{{timenow}}",
   "exchange": "{{exchange}}",
   "timeframe": "{{interval}}",
   "ticker": "{{ticker}}",
-  "alert_message": "{{strategy.order.alert_message}}",
+  "leverage": "0",
   "bar": {
     "time": "{{time}}",
     "open": "{{open}}",
@@ -23,8 +23,7 @@
     "market_position": "{{strategy.market_position}}",
     "market_position_size": "{{strategy.market_position_size}}",
     "prev_market_position": "{{strategy.prev_market_position}}",
-    "prev_market_position_size": "{{strategy.prev_market_position_size}}",
-    "order_message": "{{strategy.order.comment}}"
+    "prev_market_position_size": "{{strategy.prev_market_position_size}}"
   },
-  "passphrase": ""
+  "passphrase": "________________"
 }
