@@ -3,9 +3,12 @@ import os
 from binance.um_futures import UMFutures
 from pybit.unified_trading import HTTP
 
-def place_binance_order(order_type, symbol, side, qty, data):
+def place_binance_order(order_type, symbol, qty, data):
     client = UMFutures(os.getenv('API_KEY'), os.getenv('API_SECRET'))
+    side = data['strategy']['order_action'].upper()
     leverage = int(data.get('leverage', 0))
+    print(f"Preparing order {order_type} - {side} {qty} {symbol} with leverage {leverage}")
+
     if leverage > 1:
         print(f"\nSetting leverage to {leverage}x\n")
         client.futures_change_leverage(symbol=symbol, leverage=leverage)
@@ -29,13 +32,15 @@ def place_binance_order(order_type, symbol, side, qty, data):
 
     return order_response
 
-def place_bybit_order(order_type, symbol, side, qty, data):
+def place_bybit_order(order_type, symbol, qty, data):
     session = HTTP(
         testnet=False,
         api_key=os.getenv('API_KEY_5'),
         api_secret=os.getenv('API_SECRET_5'),
     )
+    side = data['strategy']['order_action'][0].upper() + data['strategy']['order_action'][1:]
     leverage = float(data.get('leverage', 0))
+    print(f"Preparing order for Bybit {order_type} - {side} {qty} {symbol} with leverage {leverage}")
     if leverage > 1:
         print(f"\nSetting leverage to {leverage}x\n")
         session.set_leverage(category="linear",

@@ -87,12 +87,7 @@ def execute_order(data):
     if order_type == "REAL":
         if exchange == "BINANCE":
             try:
-                # Collect Side Data Matched for Binance's API
-                side = data['strategy']['order_action'].upper()
-                print(f"Preparing order {order_type} - {side} {quantity} {ticker} with leverage {leverage}")
-
-                order_response = place_binance_order(order_type, ticker, side, quantity, data)
-                # Get order price from trade response
+                order_response = place_binance_order(order_type, ticker, quantity, data)
                 record_trade(data, order_response)
             except Exception as e:
                 record_trade(data, "Failed Real Order?")
@@ -100,12 +95,7 @@ def execute_order(data):
                 return False
         elif exchange == "BYBIT":
             try:
-                # Collect Side Data Matched for Bybit's API
-                side = data['strategy']['order_action'][0].upper() + data['strategy']['order_action'][1:]
-                print(f"Preparing order for Bybit {order_type} - {side} {quantity} {ticker} with leverage {leverage}")
-
-                order_response = place_bybit_order(order_type, ticker, side, quantity, data)
-                # Get order price from trade response
+                order_response = place_bybit_order(order_type, ticker, quantity, data)
                 record_trade(data, order_response)
             except Exception as e:
                 record_trade(data, "Failed Real Order?")
