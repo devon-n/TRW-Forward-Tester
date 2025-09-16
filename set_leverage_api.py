@@ -12,10 +12,9 @@ def set_leverage_binance(client,symbol, leverage):
 def set_leverage_bybit(session, symbol, leverage):
     print(f"\nSetting leverage to {leverage}x\n")
     try:
-        lev_response = session.switch_margin_mode(
+        lev_response = session.set_leverage(
             category="linear",
             symbol=symbol,
-            tradeMode=1, #isolated
             buyLeverage=str(leverage),
             sellLeverage=str(leverage),
             )
