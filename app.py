@@ -69,7 +69,6 @@ def execute_order(data):
     """Executes a real Bybit/Binance order or simulates it for paper trading."""
     quantity = data['strategy']['order_contracts']
     ticker = data['ticker']
-    leverage = int(data.get('leverage', 0))  # Default leverage to 0 if not provided
     order_type = data.get('order_type', 'PAPER').upper()  # Default to paper trading
     exchange = data.get('exchange', None)
 
@@ -92,7 +91,7 @@ def execute_order(data):
                 side = data['strategy']['order_action'].upper()
                 print(f"Preparing order {order_type} - {side} {quantity} {ticker} with leverage {leverage}")
 
-                order_response = place_binance_order(order_type, ticker, side, quantity, leverage, data)
+                order_response = place_binance_order(order_type, ticker, side, quantity, data)
                 # Get order price from trade response
                 record_trade(data, order_response)
             except Exception as e:
@@ -105,7 +104,7 @@ def execute_order(data):
                 side = data['strategy']['order_action'][0].upper() + data['strategy']['order_action'][1:]
                 print(f"Preparing order for Bybit {order_type} - {side} {quantity} {ticker} with leverage {leverage}")
 
-                order_response = place_bybit_order(order_type, ticker, side, quantity, leverage, data)
+                order_response = place_bybit_order(order_type, ticker, side, quantity, data)
                 # Get order price from trade response
                 record_trade(data, order_response)
             except Exception as e:
