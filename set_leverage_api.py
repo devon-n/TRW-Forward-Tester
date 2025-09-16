@@ -18,7 +18,7 @@ def set_leverage_bybit(session, symbol, leverage):
             buyLeverage=str(leverage),
             sellLeverage=str(leverage),
             )
-
+        print({lev_response})
         if lev_response["retCode"] == 110043: # Leverage already set to target
             print(f"Leverage already {leverage}x")
             return
