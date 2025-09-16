@@ -87,15 +87,16 @@ def execute_order(data):
     if order_type == "REAL":
         if exchange == "BINANCE":
             try:
-                order_response = place_binance_order(order_type, ticker, quantity, data)
+                order_response = place_binance_order(ticker, quantity, data)
                 record_trade(data, order_response)
             except Exception as e:
                 record_trade(data, "Failed Real Order?")
                 print(f"Failed Order(Binance): {e}")
                 return False
+
         elif exchange == "BYBIT":
             try:
-                order_response = place_bybit_order(order_type, ticker, quantity, data)
+                order_response = place_bybit_order(ticker, quantity, data)
                 record_trade(data, order_response)
             except Exception as e:
                 record_trade(data, "Failed Real Order?")

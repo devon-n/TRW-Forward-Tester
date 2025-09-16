@@ -3,11 +3,11 @@ import os
 from binance.um_futures import UMFutures
 from pybit.unified_trading import HTTP
 
-def place_binance_order(order_type, symbol, qty, data):
+def place_binance_order(symbol, qty, data):
     client = UMFutures(os.getenv('API_KEY'), os.getenv('API_SECRET'))
     side = data['strategy']['order_action'].upper()
     leverage = int(data.get('leverage', 0))
-    print(f"Preparing order {order_type} - {side} {qty} {symbol} with leverage {leverage}")
+    print(f"Preparing order for Binance: REAL - {side} {qty} {symbol} with leverage {leverage}")
 
     if leverage > 1:
         print(f"\nSetting leverage to {leverage}x\n")
@@ -24,15 +24,15 @@ def place_binance_order(order_type, symbol, qty, data):
     order_response = client.new_order(
         symbol=symbol,
         side=side,
-        type=order_type,
+        type="MARKET",
         quantity=qty
     )
 
-    print(f"Real order executed: {order_type} - {side} {qty} {symbol} | {order_response}")
+    print(f"Order executed: REAL - {side} {qty} {symbol} | {order_response}")
 
     return order_response
 
-def place_bybit_order(order_type, symbol, qty, data):
+def place_bybit_order(symbol, qty, data):
     session = HTTP(
         testnet=False,
         api_key=os.getenv('API_KEY_5'),
@@ -40,7 +40,7 @@ def place_bybit_order(order_type, symbol, qty, data):
     )
     side = data['strategy']['order_action'][0].upper() + data['strategy']['order_action'][1:]
     leverage = float(data.get('leverage', 0))
-    print(f"Preparing order for Bybit {order_type} - {side} {qty} {symbol} with leverage {leverage}")
+    print(f"Preparing order for Bybit: REAL - {side} {qty} {symbol} with leverage {leverage}")
     if leverage > 1:
         print(f"\nSetting leverage to {leverage}x\n")
         session.set_leverage(category="linear",
@@ -63,10 +63,10 @@ def place_bybit_order(order_type, symbol, qty, data):
         category="linear",
         symbol=symbol,
         side=side,
-        orderType=order_type,
+        orderType="Market",
         qty=qty,
     )
 
-    print(f"Real order executed: {order_type} - {side} {qty} {symbol} | {order_response}")
+    print(f"Order executed: REAL - {side} {qty} {symbol} | {order_response}")
 
     return order_response
