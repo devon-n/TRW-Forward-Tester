@@ -23,9 +23,8 @@ def set_leverage_bybit(session, symbol, leverage):
         print(f"Leverage successfully set to {leverage}x")
 
     except Exception as e:
-        if hasattr(e, "retCode") and e.retCode:
-            ret_code = str(e.retCode)
-            if "110043" in ret_code:
-                print(f"Leverage already set to {leverage}x")
-                return
+        err_str = str(e)
+        if "110043" in err_str:
+            print(f"Leverage already set to {leverage}x")
+            return
         raise
