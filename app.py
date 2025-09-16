@@ -7,7 +7,7 @@ from pymongo import MongoClient  # type: ignore
 from dotenv import load_dotenv
 from functools import lru_cache
 from config import minQtyDict, precisionDecimalDict
-from exchanges import place_bybit_order, place_binance_order
+from place_order_api import place_order_binance, place_order_bybit
 
 load_dotenv()
 
@@ -87,7 +87,7 @@ def execute_order(data):
     if order_type == "REAL":
         if exchange == "BINANCE":
             try:
-                order_response = place_binance_order(ticker, quantity, data)
+                order_response = place_order_binance(ticker, quantity, data)
                 record_trade(data, order_response)
             except Exception as e:
                 record_trade(data, "Failed Real Order?")
@@ -96,7 +96,7 @@ def execute_order(data):
 
         elif exchange == "BYBIT":
             try:
-                order_response = place_bybit_order(ticker, quantity, data)
+                order_response = place_order_bybit(ticker, quantity, data)
                 record_trade(data, order_response)
             except Exception as e:
                 record_trade(data, "Failed Real Order?")
