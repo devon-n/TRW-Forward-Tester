@@ -35,8 +35,8 @@ def place_binance_order(symbol, qty, data):
 def place_bybit_order(symbol, qty, data):
     session = HTTP(
         testnet=False,
-        api_key=os.getenv('API_KEY_5'),
-        api_secret=os.getenv('API_SECRET_5'),
+        api_key=os.getenv('API_KEY_6'),
+        api_secret=os.getenv('API_SECRET_6'),
     )
     side = data['strategy']['order_action'][0].upper() + data['strategy']['order_action'][1:]
     leverage = float(data.get('leverage', 0))
