@@ -1,8 +1,6 @@
 import json
 import os
 from flask import Flask, request, jsonify, abort
-from binance.um_futures import UMFutures
-from pybit.unified_trading import HTTP
 from pymongo import MongoClient  # type: ignore
 from dotenv import load_dotenv
 from functools import lru_cache
