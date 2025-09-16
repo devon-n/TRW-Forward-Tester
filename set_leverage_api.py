@@ -12,18 +12,20 @@ def set_leverage_binance(client,symbol, leverage):
 def set_leverage_bybit(session, symbol, leverage):
     print(f"\nSetting leverage to {leverage}x\n")
     try:
-        lev_response = session.set_leverage(
+        session.set_margin_mode(setMarginMode="ISOLATED_MARGIN")
+        session.set_leverage(
             category="linear",
             symbol=symbol,
             buyLeverage=str(leverage),
             sellLeverage=str(leverage),
             )
-        print({lev_response})
-        if lev_response["retCode"] == 110043: # Leverage already set to target
-            print(f"Leverage already {leverage}x")
-            return
 
         print(f"Leverage successfully set to {leverage}x")
 
     except Exception as e:
-        print(f"Error while adjusting leverage(Bybit): {e}")
+        if hasattr(e, "retCode") and e.retCode:
+            ret_code = str(e.retCode)
+            if "110043" in ret_code:
+                print(f"Leverage already set to {leverage}x")
+                return
+        raise
