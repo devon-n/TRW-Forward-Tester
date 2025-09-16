@@ -7,6 +7,7 @@ from pymongo import MongoClient  # type: ignore
 from dotenv import load_dotenv
 from functools import lru_cache
 from config import minQtyDict, precisionDecimalDict
+from exchanges import place_bybit_order, place_binance_order
 
 load_dotenv()
 
@@ -70,7 +71,7 @@ def execute_order(data):
     ticker = data['ticker']
     leverage = int(data.get('leverage', 0))  # Default leverage to 0 if not provided
     order_type = data.get('order_type', 'PAPER').upper()  # Default to paper trading
-    exchange = data.get('exchange', 'BYBIT')
+    exchange = data.get('exchange', None)
 
     # Update min qty and precision
     ticker = ticker.replace('.P', '')
@@ -85,61 +86,31 @@ def execute_order(data):
     data['strategy']['order_contracts'] = quantity
 
     if order_type == "REAL":
-        if exchange == "BYBIT":
-            try:
-                # Collect Side Data Matched for Bybit's API
-                side = data['strategy']['order_action'][0].upper() + data['strategy']['order_action'][1:]
-                print(f"Preparing order for Bybit {order_type} - {side} {quantity} {ticker} with leverage {leverage}")
-
-                # Initialize Bybit HTTP with environment variables
-                session = HTTP(
-                    testnet=False,
-                    api_key=os.getenv('API_KEY'),
-                    api_secret=os.getenv('API_SECRET'),
-                )
-                print(f"\nSending Order: {json.dumps(data)}\n")
-
-                order_response = session.place_order(
-                    category="linear",
-                    symbol=ticker,
-                    side=side,
-                    orderType="Market",
-                    qty=quantity,
-                )
-                print(f"Real order executed: {order_type} - {side} {quantity} {ticker} | {order_response}")
-
-                # Get order price from trade response
-                record_trade(data, order_response)
-            except Exception as e:
-                record_trade(data, "Failed Real Order?")
-                print(f"Failed Order(Bybit): An exception occurred: {e}")
-                return False
-
-        elif exchange == "BINANCE":
+        if exchange == "BINANCE":
             try:
                 # Collect Side Data Matched for Binance's API
                 side = data['strategy']['order_action'].upper()
                 print(f"Preparing order {order_type} - {side} {quantity} {ticker} with leverage {leverage}")
 
-                # Initialize Binance client with environment variables
-                client = UMFutures(os.getenv('API_KEY'), os.getenv('API_SECRET'))
-                # client.futures_change_leverage(symbol=ticker, leverage=leverage)
-                # client.futures_change_margin_type(symbol=ticker, marginType="ISOLATED")
-                print(f"\nSending Order: {json.dumps(data)}\n")
-
-                order_response = client.new_order(
-                    symbol=ticker,
-                    side=side,
-                    type="MARKET",
-                    quantity=quantity
-                    )
-                print(f"Real order executed: {order_type} - {side} {quantity} {ticker} | {order_response}")
-
+                order_response = place_binance_order(order_type, ticker, side, quantity, leverage, data)
                 # Get order price from trade response
                 record_trade(data, order_response)
             except Exception as e:
                 record_trade(data, "Failed Real Order?")
-                print(f"Failed Order(Binance): An exception occurred: {e}")
+                print(f"Failed Order(Binance): {e}")
+                return False
+        elif exchange == "BYBIT":
+            try:
+                # Collect Side Data Matched for Bybit's API
+                side = data['strategy']['order_action'][0].upper() + data['strategy']['order_action'][1:]
+                print(f"Preparing order for Bybit {order_type} - {side} {quantity} {ticker} with leverage {leverage}")
+
+                order_response = place_bybit_order(order_type, ticker, side, quantity, leverage, data)
+                # Get order price from trade response
+                record_trade(data, order_response)
+            except Exception as e:
+                record_trade(data, "Failed Real Order?")
+                print(f"Failed Order(Bybit): {e}")
                 return False
         else:
             print("Execution Error: No exchange value matching Bybit or Binance")
