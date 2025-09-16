@@ -51,11 +51,11 @@ def place_bybit_order(symbol, qty, data):
                                  buyLeverage=str(leverage),
                                  sellLeverage=str(leverage),
                                  )
-            if hasattr(lev_response, "retCode"):
-                if lev_response.retCode in session.ignore_codes:
+            if hasattr(lev_response, "ret_code"):
+                if lev_response.ret_code in session.ignore_codes:
                     print(f"Leverage already set to {leverage}x.")
-                elif lev_response.retCode != 0:
-                    print(f"Error: {lev_response.retMsg} (code {lev_response.retCode})")
+                elif lev_response.ret_code != 0:
+                    print(f"Error: {lev_response.retMsg} (code {lev_response.ret_code})")
         except Exception as e:
             print(f"Error while adjusting leverage: {e}")
     else:
