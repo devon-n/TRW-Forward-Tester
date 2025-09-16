@@ -39,19 +39,23 @@ def place_bybit_order(symbol, qty, data):
         api_secret=os.getenv('API_SECRET_6'),
     )
     # Ignore specific error codes.
-    # 110043: Leverage already set
-    session.ignore_codes.add(110043)
+    session.ignore_codes.add(110043) # 110043: Leverage already set
     side = data['strategy']['order_action'][0].upper() + data['strategy']['order_action'][1:]
     leverage = float(data.get('leverage', 0))
     print(f"Preparing order for Bybit: REAL - {side} {qty} {symbol} with leverage {leverage}")
     if leverage != 0:
         print(f"\nSetting leverage to {leverage}x\n")
         try:
-            session.set_leverage(category="linear",
+            lev_response = session.set_leverage(category="linear",
                                  symbol=symbol,
                                  buyLeverage=str(leverage),
                                  sellLeverage=str(leverage),
                                  )
+            if hasattr(lev_response, "retCode"):
+                if lev_response.retCode in session.ignore_codes:
+                    print(f"Leverage already set to {leverage}x.")
+                elif lev_response.retCode != 0:
+                    print(f"Error: {lev_response.retMsg} (code {lev_response.retCode})")
         except Exception as e:
             print(f"Error while adjusting leverage: {e}")
     else:
