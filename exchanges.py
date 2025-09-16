@@ -9,13 +9,13 @@ def place_binance_order(symbol, qty, data):
     leverage = int(data.get('leverage', 0))
     print(f"Preparing order for Binance: REAL - {side} {qty} {symbol} with leverage {leverage}")
 
-    if leverage > 1:
+    if leverage != 0:
         print(f"\nSetting leverage to {leverage}x\n")
-        client.futures_change_leverage(symbol=symbol, leverage=leverage)
-        client.futures_change_margin_type(symbol=symbol, marginType="ISOLATED")
-    elif leverage == 1:
-        client.futures_change_leverage(symbol=symbol, leverage=leverage)
-        client.futures_change_margin_type(symbol=symbol, marginType="ISOLATED")
+        try:
+            client.futures_change_leverage(symbol=symbol, leverage=leverage)
+            client.futures_change_margin_type(symbol=symbol, marginType="ISOLATED")
+        except Exception as e:
+            print(f"Error while adjusting leverage: {e}")
     else:
         pass # Doesn't touch leverage if set to "0"
 
@@ -38,22 +38,22 @@ def place_bybit_order(symbol, qty, data):
         api_key=os.getenv('API_KEY_6'),
         api_secret=os.getenv('API_SECRET_6'),
     )
+    # Ignore specific error codes.
+    # 110043: Leverage already set
+    session.ignore_codes.add(110043)
     side = data['strategy']['order_action'][0].upper() + data['strategy']['order_action'][1:]
     leverage = float(data.get('leverage', 0))
     print(f"Preparing order for Bybit: REAL - {side} {qty} {symbol} with leverage {leverage}")
-    if leverage > 1:
+    if leverage != 0:
         print(f"\nSetting leverage to {leverage}x\n")
-        session.set_leverage(category="linear",
-                             symbol=symbol,
-                             buyLeverage=str(leverage),
-                             sellLeverage=str(leverage),
-                             )
-    elif leverage == 1:
-        session.set_leverage(category="linear",
-                             symbol=symbol,
-                             buyLeverage="1",
-                             sellLeverage="1",
-                             )
+        try:
+            session.set_leverage(category="linear",
+                                 symbol=symbol,
+                                 buyLeverage=str(leverage),
+                                 sellLeverage=str(leverage),
+                                 )
+        except Exception as e:
+            print(f"Error while adjusting leverage: {e}")
     else:
         pass # Doesn't touch leverage if set to "0"
 
