@@ -5,7 +5,10 @@ from pymongo import MongoClient  # type: ignore
 from dotenv import load_dotenv
 from functools import lru_cache
 from config import minQtyDict, precisionDecimalDict
-from place_order_api import place_order_binance, place_order_bybit
+
+# Import exchanges
+from exchanges.binance import place_order_binance
+from exchanges.bybit import place_order_bybit
 
 load_dotenv()
 
