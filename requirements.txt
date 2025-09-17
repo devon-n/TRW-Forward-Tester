@@ -9,3 +9,4 @@ gunicorn==22.0.0
 dnspython==2.6.1
 binance-futures-connector==4.0.0
 streamlit==1.47.1
+pybit==5.11.0
