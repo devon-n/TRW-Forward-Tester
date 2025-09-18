@@ -14,8 +14,6 @@ def place_order_bybit(symbol, qty, data):
     print(f"Preparing order for Bybit: REAL - {side} {qty} {symbol} with leverage {leverage}")
     if leverage != 0:
         set_leverage_bybit(session, symbol, leverage)
-    else:
-        pass # Doesn't touch leverage if set to "0"
 
     print(f"Sending Order: {json.dumps(data)}\n")
 

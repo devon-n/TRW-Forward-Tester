@@ -11,8 +11,6 @@ def place_order_binance(symbol, qty, data):
 
     if leverage != 0:
         set_leverage_binance(client, symbol, leverage)
-    else:
-        pass # Doesn't touch leverage if set to "0"
 
     print(f"Sending Order: {json.dumps(data)}\n")
 
