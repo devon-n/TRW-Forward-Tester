@@ -1,11 +1,14 @@
 import json
 import os
 from flask import Flask, request, jsonify, abort
-from binance.um_futures import UMFutures
-from pymongo import MongoClient # type: ignore
+from pymongo import MongoClient  # type: ignore
 from dotenv import load_dotenv
 from functools import lru_cache
 from config import minQtyDict, precisionDecimalDict
+
+# Import exchanges
+from exchanges.binance import place_order_binance
+from exchanges.bybit import place_order_bybit
 
 load_dotenv()
 
@@ -60,53 +63,50 @@ def record_trade(data, order_response):
         print(f"Failed Order: An exception occurred: {e}")
 
 def execute_order(data):
-    """Executes a real Binance order or simulates it for paper trading."""
-    try:
-        side = data['strategy']['order_action'].upper()
-        quantity = data['strategy']['order_contracts']
-        ticker = data['ticker']
-        leverage = int(data.get('leverage', 0))  # Default leverage to 0 if not provided
-        order_type = data.get('order_type', 'PAPER').upper()  # Default to paper trading
-        print(f"Preparing order {order_type} - {side} {quantity} {ticker} with leverage {leverage}")
+    """Executes a real Bybit/Binance order or simulates it for paper trading."""
+    quantity = data['strategy']['order_contracts']
+    ticker = data['ticker']
+    order_type = data.get('order_type', 'PAPER').upper()  # Default to paper trading
+    exchange = data.get('exchange', None)
 
-        # Update min qty and precision
-        ticker = ticker.replace('.P', '')
-        ticker = ticker + "T" if ticker.endswith("USD") else ticker
-        if ticker in minQtyDict:
-            if float(quantity) < float(minQtyDict[ticker]):
-                quantity = minQtyDict[ticker]
+    # Update min qty and precision
+    ticker = ticker.replace('.P', '')
+    ticker = ticker + "T" if ticker.endswith("USD") else ticker
+    if ticker in minQtyDict:
+        if float(quantity) < float(minQtyDict[ticker]):
+            quantity = minQtyDict[ticker]
 
-        if ticker in precisionDecimalDict:
-            quantity = str(round(float(quantity), precisionDecimalDict[ticker]))
+    if ticker in precisionDecimalDict:
+        quantity = str(round(float(quantity), precisionDecimalDict[ticker]))
 
-        data['strategy']['order_contracts'] = quantity
+    data['strategy']['order_contracts'] = quantity
 
-        if order_type == "REAL":
+    if order_type == "REAL":
+        if exchange == "BINANCE":
+            try:
+                order_response = place_order_binance(ticker, quantity, data)
+                record_trade(data, order_response)
+            except Exception as e:
+                record_trade(data, "Failed Real Order?")
+                print(f"Failed Order(Binance): {e}")
+                return False
 
-            # Initialize Binance client with environment variables
-            client = UMFutures(os.getenv('API_KEY'), os.getenv('API_SECRET'))
-            # client.futures_change_leverage(symbol=ticker, leverage=leverage)
-            # client.futures_change_margin_type(symbol=ticker, marginType="ISOLATED")
-            print(f"\nSending Order: {json.dumps(data)}\n")
-
-            order_response = client.new_order(
-                symbol=ticker,
-                side=side,
-                type="MARKET",
-                quantity=quantity
-                )
-            print(f"Real order executed: {order_type} - {side} {quantity} {ticker} | {order_response}")
-
-            # Get order price from trade response
-            record_trade(data, order_response)
+        elif exchange == "BYBIT":
+            try:
+                order_response = place_order_bybit(ticker, quantity, data)
+                record_trade(data, order_response)
+            except Exception as e:
+                record_trade(data, "Failed Real Order?")
+                print(f"Failed Order(Bybit): {e}")
+                return False
         else:
-            print(f"Simulated paper order: {order_type} - {side} {quantity} {ticker}")
-            record_trade(data, None)
-        return True
-    except Exception as e:
-        record_trade(data, "Failed Real Order?")
-        print(f"Failed Order: An exception occurred: {e}")
-        return False
+            print("Execution Error: No exchange value matching Bybit or Binance")
+    else:
+        side = data['strategy']['order_action'].upper()
+        print(f"Simulated paper order: {order_type} - {side} {quantity} {ticker}")
+        record_trade(data, None)
+    return True
+
 
 @app.route('/')
 def welcome():
