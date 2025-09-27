@@ -9,6 +9,7 @@ from config import minQtyDict, precisionDecimalDict
 # Import exchanges
 from exchanges.binance import place_order_binance
 from exchanges.bybit import place_order_bybit
+from exchanges.yfinance import YahooFinance
 
 load_dotenv()
 
@@ -67,7 +68,21 @@ def execute_order(data):
     quantity = data['strategy']['order_contracts']
     ticker = data['ticker']
     order_type = data.get('order_type', 'PAPER').upper()  # Default to paper trading
-    exchange = data.get('exchange', None)
+    exchange = data.get('exchange', '').upper()
+
+    # If trading NQ! with yfinance
+    if ticker == 'NQ!' and exchange in ['YAHOO', 'STOCK']:
+        yf_api = YahooFinance(ticker)
+        stock_data = yf_api.get_current_data()
+        if stock_data:
+            data['bar'] = {
+                "time": stock_data["time"],
+                "open": stock_data["open"],
+                "high": stock_data["high"],
+                "low": stock_data["low"],
+                "close": stock_data["close"],
+                "volume": stock_data["volume"]
+            }
 
     # Update min qty and precision
     ticker = ticker.replace('.P', '')
