@@ -1,10 +1,10 @@
 {
-  "strategyName": "BTCUSDT 15s SMKHT",
+  "strategyName": "NQ! 1m SMKHT",
   "order_type": "PAPER",
   "time": "{{timenow}}",
-  "exchange": "{{exchange}}",
+  "exchange": "YAHOO",
   "timeframe": "{{interval}}",
-  "ticker": "{{ticker}}",
+  "ticker": "NQ!",
   "leverage": "0",
   "bar": {
     "time": "{{time}}",
