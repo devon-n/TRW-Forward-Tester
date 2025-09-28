@@ -1,5 +1,5 @@
 {
-  "strategyName": "BTCUSDT 15s SMKHT",
+  "strategyName": "_______",
   "order_type": "PAPER",
   "time": "{{timenow}}",
   "exchange": "{{exchange}}",
@@ -17,7 +17,6 @@
   "strategy": {
     "position_size": "{{strategy.position_size}}",
     "order_action": "{{strategy.order.action}}",
-    "side": "{{strategy.order.action}}",
     "order_contracts": "{{strategy.order.contracts}}",
     "order_price": "{{strategy.order.price}}",
     "order_id": "{{strategy.order.id}}",
@@ -26,5 +25,5 @@
     "prev_market_position": "{{strategy.prev_market_position}}",
     "prev_market_position_size": "{{strategy.prev_market_position_size}}"
   },
-  "passphrase": ""
+  "passphrase": "________________"
 }
