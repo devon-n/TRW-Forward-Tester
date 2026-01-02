@@ -39,7 +39,11 @@ to
 "order_type": "REAL"
 ```
 # Run test of REAL trades
-After switch to REAL order type go to VS code terminal
+After switch to REAL order type go to VS code terminal and run these two lines
 ```json
-"pip install pytest
-python -m pytest"
+"pip install pytest"
+```
+and then
+```json
+"python -m pytest"
+```
