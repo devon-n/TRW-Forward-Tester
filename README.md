@@ -38,3 +38,8 @@ to
 ```json
 "order_type": "REAL"
 ```
+# Run test of REAL trades
+After switch to REAL order type go to VS code terminal
+```json
+"pip install pytest
+python -m pytest"
