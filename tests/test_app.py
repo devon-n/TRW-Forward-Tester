@@ -139,6 +139,7 @@ def test_record_trade(mock_trades_collection):
     assert call_args['leverage'] == 10
     assert call_args['order_type'] == 'PAPER'
     assert call_args['order_response'] == order_response
+#test for when empty payload being sent
 @patch.dict(os.environ, {'WHITELISTED_IPS': '127.0.0.1', 'WEBHOOK_PASSPHRASE': 'test_passphrase'})
 @patch('app.execute_order')
 def test_webhook_empty_payload(mock_execute_order, client):
