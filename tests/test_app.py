@@ -139,3 +139,27 @@ def test_record_trade(mock_trades_collection):
     assert call_args['leverage'] == 10
     assert call_args['order_type'] == 'PAPER'
     assert call_args['order_response'] == order_response
+#test for when empty payload being sent
+@patch.dict(os.environ, {'WHITELISTED_IPS': '127.0.0.1', 'WEBHOOK_PASSPHRASE': 'test_passphrase'})
+@patch('app.execute_order')
+def test_webhook_empty_payload(mock_execute_order, client):
+    """
+    Test webhook behavior when receiving an empty JSON payload.
+    The bot should NOT execute any order and should return an error.
+    """
+
+    response = client.post(
+        '/webhook',
+        json={},  # Empty payload
+        headers={'X-Forwarded-For': '127.0.0.1'}
+    )
+
+    # execute_order should NEVER be called
+    mock_execute_order.assert_not_called()
+
+    # Status code depends on your app logic (400 or 403 are both acceptable)
+    assert response.status_code in (400, 403)
+
+    # Optional: if you return JSON error messages
+    if response.is_json:
+        assert "error" in response.json or "message" in response.json
