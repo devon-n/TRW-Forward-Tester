@@ -7,12 +7,11 @@ def test_welcome(client):
     assert response.status_code == 200
     assert response.data == b""
 
-@patch.dict(os.environ, {'WHITELISTED_IPS': '127.0.0.1,192.168.1.1', 'WEBHOOK_PASSPHRASE': 'test_passphrase'})
-def test_webhook_valid_passphrase(client):
+@patch.dict(os.environ, {'WHITELISTED_IPS': '127.0.0.1,192.168.1.1'})
+def test_webhook(client):
     with patch('app.execute_order') as mock_execute_order:
         mock_execute_order.return_value = True
         data = {
-            'passphrase': 'test_passphrase',
             'strategyName': 'TestStrategy',
             'ticker': 'BTCUSDT',
             'bar': {'time': '2023-01-01T00:00:00Z', 'close': 50000},
@@ -142,7 +141,7 @@ def test_record_trade(mock_trades_collection):
     assert call_args['order_type'] == 'PAPER'
     assert call_args['order_response'] == order_response
 
-@patch.dict(os.environ, {'WHITELISTED_IPS': '127.0.0.1', 'WEBHOOK_PASSPHRASE': 'test_passphrase'})
+@patch.dict(os.environ, {'WHITELISTED_IPS': '127.0.0.1' })
 @patch('app.execute_order')
 def test_webhook_empty_payload(mock_execute_order, client):
     """
