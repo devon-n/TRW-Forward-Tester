@@ -2,6 +2,7 @@ import pytest
 from unittest.mock import patch, MagicMock
 import os
 from app import app, whitelist_ip, execute_order, record_trade
+from binance.um_futures import UMFutures
 
 @pytest.fixture
 def client():
@@ -73,8 +74,13 @@ def test_execute_order_real(mock_record_trade, mock_um_futures):
     mock_client = MagicMock()
     mock_um_futures.return_value = mock_client
     mock_client.new_order.return_value = {'orderId': '123456'}
+    
+    # 👇 mock ALL exchange methods used
+    mock_client.futures_change_margin_type.return_value = None
+    mock_client.futures_change_leverage.return_value = None
 
     data = {
+        'exchange': 'BINANCE', 
         'strategy': {'order_action': 'BUY', 'order_contracts': '0.001'},
         'ticker': 'BTCUSDT',
         'leverage': 10,
@@ -162,4 +168,4 @@ def test_webhook_empty_payload(mock_execute_order, client):
 
     # Optional: if you return JSON error messages
     if response.is_json:
-        assert "error" in response.json or "message" in response.json
+        assert "error" in response.json or "message" in response.jsonpy
