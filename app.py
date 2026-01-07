@@ -1,7 +1,7 @@
 import json
 import os
 from flask import Flask, request, jsonify, abort
-from pymongo import MongoClient  # type: ignore
+from pymongo import MongoClient
 from dotenv import load_dotenv
 from functools import lru_cache
 from config import minQtyDict, precisionDecimalDict
@@ -115,10 +115,10 @@ def welcome():
 @app.route('/webhook', methods=['POST'])
 @whitelist_ip
 def webhook():
-    #Handle empty payloads 
+    #Handle empty payloads
     if not request.data or request.content_length == 0:
         print("Empty webhook payload received — ignored")
-        return jsonify({"status": "ignored", "reason": "empty payload"}), 200
+        return jsonify({"status": "ignored", "reason": "empty payload"}), 400
 
     try:
         data = request.get_json(force=True)
@@ -130,8 +130,9 @@ def webhook():
 
     print(f"\n data: {data}\n")
 
-    # if data.get("passphrase") != os.getenv("WEBHOOK_PASSPHRASE"):
-    #     return jsonify({"code": "error", "message": "Invalid passphrase"}), 403
+    if not data or not isinstance(data, dict):
+        print("Empty or invalid webhook data received — ignored")
+        return jsonify({"status": "ignored", "reason": "empty payload"}), 400
 
     success = execute_order(data)
 
