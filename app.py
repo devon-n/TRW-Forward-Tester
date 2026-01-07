@@ -1,7 +1,7 @@
 import json
 import os
 from flask import Flask, request, jsonify, abort
-from pymongo import MongoClient  # type: ignore
+from pymongo import MongoClient
 from dotenv import load_dotenv
 from functools import lru_cache
 from config import minQtyDict, precisionDecimalDict
@@ -115,19 +115,31 @@ def welcome():
 @app.route('/webhook', methods=['POST'])
 @whitelist_ip
 def webhook():
-    """Handles incoming TradingView alerts via webhook and processes trades."""
-    data = json.loads(request.data)
-    print(f"\n data: {data}\n")
-    # if data['passphrase'] != os.getenv('WEBHOOK_PASSPHRASE'):
-        #return jsonify({"code": "error", "message": "Invalid passphrase"}), 403
+    #Handle empty payloads
+    if not request.data or request.content_length == 0:
+        print("Empty webhook payload received — ignored")
+        return jsonify({"status": "ignored", "reason": "empty payload"}), 400
 
-    # Execute or simulate the order
+    try:
+        data = request.get_json(force=True)
+    except Exception as e:
+        print("Invalid JSON received")
+        print("Error:", e)
+        print("Raw body:", request.data)
+        return jsonify({"status": "error", "reason": "invalid JSON"}), 400
+
+    print(f"\n data: {data}\n")
+
+    if not data or not isinstance(data, dict):
+        print("Empty or invalid webhook data received — ignored")
+        return jsonify({"status": "ignored", "reason": "empty payload"}), 400
+
     success = execute_order(data)
 
     if success:
-        return jsonify({"code": "success", "message": "Order executed"})
+        return jsonify({"code": "success", "message": "Order executed"}), 200
     else:
-        return jsonify({"code": "error", "message": "Order failed"})
+        return jsonify({"code": "error", "message": "Order failed"}), 500
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)

@@ -1,0 +1,167 @@
+import pytest
+from unittest.mock import patch, MagicMock
+import os
+
+def test_welcome(client):
+    response = client.get('/')
+    assert response.status_code == 200
+    assert response.data == b""
+
+@patch.dict(os.environ, {'WHITELISTED_IPS': '127.0.0.1,192.168.1.1'})
+def test_webhook(client):
+    with patch('app.execute_order') as mock_execute_order:
+        mock_execute_order.return_value = True
+        data = {
+            'strategyName': 'TestStrategy',
+            'ticker': 'BTCUSDT',
+            'bar': {'time': '2023-01-01T00:00:00Z', 'close': 50000},
+            'strategy': {
+                'order_action': 'buy',
+                'order_contracts': '0.001',
+                'order_price': 50000,
+                'position_size': 0.001,
+                'order_id': '123',
+                'market_position': 'long',
+                'market_position_size': 0.001,
+                'prev_market_position': 'flat',
+                'prev_market_position_size': 0
+            },
+            'leverage': 10,
+            'order_type': 'PAPER'
+        }
+
+        response = client.post('/webhook', json=data, headers={'X-Forwarded-For': '127.0.0.1'})
+
+        assert response.status_code == 200, f"Expected 200, got {response.status_code}. Response data: {response.data}"
+        assert response.json == {"code": "success", "message": "Order executed"}
+
+def test_whitelist_ip_decorator():
+    from app import app, whitelist_ip
+
+    @whitelist_ip
+    def test_func():
+        return "Access granted"
+
+    with app.test_request_context(headers={'X-Forwarded-For': '127.0.0.1'}):
+        result = test_func()
+        assert result == "Access granted"
+
+    with app.test_request_context(headers={'X-Forwarded-For': '1.1.1.1'}):
+        with pytest.raises(Exception) as excinfo:
+            test_func()
+        assert "Access denied" in str(excinfo.value)
+
+@patch('exchanges.binance.UMFutures')
+@patch('app.record_trade')
+def test_execute_order_real(mock_record_trade, mock_um_futures):
+    from app import execute_order
+
+    # Mock the Binance client instance and its methods
+    mock_client = MagicMock()
+    mock_um_futures.return_value = mock_client
+
+    # Mock the order response
+    mock_client.new_order.return_value = {'orderId': '123456', 'status': 'FILLED'}
+
+    # Mock leverage methods
+    mock_client.change_leverage.return_value = {'leverage': 10}
+    mock_client.futures_change_margin_type = MagicMock()
+
+    data = {
+        'exchange': 'BINANCE',
+        'strategy': {'order_action': 'BUY', 'order_contracts': '0.001', 'order_price': 50000,
+                     'position_size': 0.001, 'order_id': '123', 'market_position': 'long',
+                     'market_position_size': 0.001, 'prev_market_position': 'flat',
+                     'prev_market_position_size': 0},
+        'ticker': 'BTCUSDT',
+        'leverage': 10,
+        'order_type': 'REAL',
+        'bar': {'time': '2023-01-01T00:00:00Z', 'close': 50000},
+        'strategyName': 'TestStrategy'
+    }
+
+    result = execute_order(data)
+    assert result == True
+
+    # Verify that the Binance client was called
+    mock_client.new_order.assert_called_once()
+    mock_record_trade.assert_called_once()
+
+@patch('app.record_trade')
+def test_execute_order_paper(mock_record_trade):
+    from app import execute_order
+
+    data = {
+        'strategy': {'order_action': 'SELL', 'order_contracts': '0.001', 'order_price': 3000,
+                     'position_size': 0.001, 'order_id': '123', 'market_position': 'short',
+                     'market_position_size': 0.001, 'prev_market_position': 'flat',
+                     'prev_market_position_size': 0},
+        'ticker': 'ETHUSDT',
+        'leverage': 5,
+        'order_type': 'PAPER',
+        'bar': {'time': '2023-01-01T00:00:00Z', 'close': 3000},
+        'strategyName': 'TestStrategy'
+    }
+
+    result = execute_order(data)
+    assert result == True
+    mock_record_trade.assert_called_once_with(data, None)
+
+@patch('app.trades_collection')
+def test_record_trade(mock_trades_collection):
+    from app import record_trade
+
+    data = {
+        'bar': {'time': '2023-01-01T00:00:00Z', 'close': 50000},
+        'strategyName': 'TestStrategy',
+        'ticker': 'BTCUSDT',
+        'strategy': {
+            'order_action': 'buy',
+            'order_contracts': '0.001',
+            'order_price': 50000,
+            'position_size': 0.001,
+            'order_id': '123',
+            'market_position': 'long',
+            'market_position_size': 0.001,
+            'prev_market_position': 'flat',
+            'prev_market_position_size': 0
+        },
+        'leverage': 10,
+        'order_type': 'PAPER'
+    }
+    order_response = {'orderId': '123456'}
+
+    record_trade(data, order_response)
+    mock_trades_collection.insert_one.assert_called_once()
+    call_args = mock_trades_collection.insert_one.call_args[0][0]
+    assert call_args['symbol'] == 'BTCUSDT'
+    assert call_args['side'] == 'BUY'
+    assert call_args['quantity'] == '0.001'
+    assert call_args['leverage'] == 10
+    assert call_args['order_type'] == 'PAPER'
+    assert call_args['order_response'] == order_response
+
+@patch.dict(os.environ, {'WHITELISTED_IPS': '127.0.0.1' })
+@patch('app.execute_order')
+def test_webhook_empty_payload(mock_execute_order, client):
+    """
+    Test webhook behavior when receiving an empty JSON payload.
+    The bot should NOT execute any order and should return an error.
+    """
+
+    response = client.post(
+        '/webhook',
+        json={},  # Empty payload
+        headers={'X-Forwarded-For': '127.0.0.1'}
+    )
+
+    # execute_order should NEVER be called
+    mock_execute_order.assert_not_called()
+
+    # Status code should be 400
+    assert response.status_code == 400
+
+    print(f"Response JSON: {response.json}")
+    # Check for either 'empty' in status or reason fields
+    response_text = str(response.json).lower()
+    assert 'empty' in response_text or 'missing' in response_text
