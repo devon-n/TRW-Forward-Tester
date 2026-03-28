@@ -7,3 +7,4 @@ test.csv
 ForwardTester
 Forward_Tester
 __pycache__/
+.venv/
