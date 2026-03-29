@@ -16,17 +16,40 @@ from packaging.version import parse
 
 # ccxt<4.5 still embeds deprecated fields (e.g. brokerCode) in POST /exchange; Hyperliquid returns 422 deserialize.
 _MIN_CCXT_FOR_HYPERLIQUID = "4.5.0"
+_SENSITIVE_LOG_KEYS = {
+    'access_token',
+    'api_key',
+    'authorization',
+    'key',
+    'password',
+    'private_key',
+    'secret',
+    'token',
+}
 
 
 def _assert_ccxt_hyperliquid_compatible():
-    current_version = getattr(ccxt, '__version__', '0') or '0'
+    current_version = getattr(ccxt, '__version__', 'unknown') or 'unknown'
     if parse(current_version) < parse(_MIN_CCXT_FOR_HYPERLIQUID):
-        ver = getattr(ccxt, '__version__', 'unknown')
         raise RuntimeError(
             f'Hyperliquid requires ccxt>={_MIN_CCXT_FOR_HYPERLIQUID} '
-            f'(found {ver}). Older builds send JSON the API rejects with HTTP 422. '
+            f'(found {current_version}). Older builds send JSON the API rejects with HTTP 422. '
             f'Install deps from this repo: pip install -r requirements.txt'
         )
+
+
+def sanitize_dict(value):
+    if isinstance(value, dict):
+        sanitized = {}
+        for key, item in value.items():
+            if key.lower() in _SENSITIVE_LOG_KEYS:
+                sanitized[key] = '***'
+            else:
+                sanitized[key] = sanitize_dict(item)
+        return sanitized
+    if isinstance(value, list):
+        return [sanitize_dict(item) for item in value]
+    return value
 
 
 def create_hyperliquid_exchange():
@@ -113,7 +136,7 @@ def place_order_hyperliquid(symbol, qty, data):
     if leverage != 0 and not set_leverage_hyperliquid(exchange, hyperliquid_symbol, leverage):
         raise RuntimeError(f'Failed to set Hyperliquid leverage to {leverage}x for {hyperliquid_symbol}')
 
-    print(f"Sending Order: {json.dumps(data)}\n")
+    print(f"Sending Order: {json.dumps(sanitize_dict(data))}\n")
 
     reference_price = _resolve_market_reference_price(exchange, hyperliquid_symbol, data)
 
