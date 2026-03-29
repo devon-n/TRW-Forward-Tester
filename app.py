@@ -13,6 +13,8 @@ from exchanges.hyperliquid import place_order_hyperliquid
 load_dotenv()
 
 app = Flask(__name__)
+mongo_client = None
+trades_collection = None
 
 
 @lru_cache(maxsize=1)
@@ -33,15 +35,29 @@ def whitelist_ip(func):
     return wrapper
 
 
-# Connect to MongoDB
-mongo_client = MongoClient(os.getenv('MONGO_URI'))
-db = mongo_client.trading
-trades_collection = db.trades
+def get_mongo_client():
+    """Create the Mongo client lazily so each Gunicorn worker owns its own pool."""
+    global mongo_client
+
+    if mongo_client is None:
+        mongo_uri = os.getenv('MONGO_URI')
+        if not mongo_uri:
+            raise RuntimeError("MONGO_URI is not set")
+        mongo_client = MongoClient(mongo_uri)
+    return mongo_client
+
+
+def get_trades_collection():
+    global trades_collection
+
+    if trades_collection is None:
+        trades_collection = get_mongo_client().trading.trades
+    return trades_collection
 
 def record_trade(data, order_response):
     """Records trade to MongoDB with strategy information."""
     try:
-        trades_collection.insert_one({
+        get_trades_collection().insert_one({
             "time": data["bar"]["time"],
             "strategy_name": data["strategyName"],
             "symbol": data["ticker"],

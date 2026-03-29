@@ -85,7 +85,7 @@ Official MongoDB references:
 1. Create a deployment in [MongoDB Atlas](https://www.mongodb.com/cloud/atlas).
 2. Open the cluster and click **Connect**.
 3. Choose **Connect your application**.
-4. Add the correct source IP to the Atlas **IP access list**. For hosted deployments, add the server or platform egress IP, not just your laptop.
+4. Add the correct source IPs to the Atlas **IP access list**. For hosted deployments, add the server or platform egress IPs, not just your laptop.
 5. Create a MongoDB database user under **Database Access** if you do not already have one.
 6. Copy the Python connection string, usually an `mongodb+srv://...` URI.
 7. Replace `<password>` with the database user password. Percent-encode special characters such as `@`, `:`, and `/` if needed.
@@ -96,6 +96,33 @@ Notes:
 - Atlas requires TLS.
 - This app selects `mongo_client.trading` in code, so it does not rely on the database name embedded in the URI path.
 - Under strict outbound firewall rules, Atlas expects access to TCP ports `27015` to `27017` on cluster hostnames.
+
+### Atlas allowlist for Render
+
+If the app runs on Render, Atlas must allow Render's outbound addresses, not only your local machine.
+
+Where to find them in Render:
+
+1. Open the Render Dashboard.
+2. Open your specific web service.
+3. Open **Connect** in the upper-right corner.
+4. Switch to the **Outbound** tab.
+5. Copy every listed outbound IP address or CIDR range.
+
+Important:
+
+- Add **all** listed outbound entries to Atlas. Render can use any of them for a connection.
+- Atlas accepts CIDR ranges in the IP access list, so paste the ranges exactly as Render shows them.
+- If you test the same MongoDB URI from your laptop too, your current public IP must also be allowlisted separately.
+- Render changed outbound networking in late 2025 to include regional IP ranges, so older screenshots or guides that show only individual IPs can be incomplete.
+- If your workspace was created before January 23, 2022 and the service runs in Oregon, Render documents that fixed outbound IPs might not be available for that service.
+
+Quick verification flow:
+
+1. In Atlas, temporarily add `0.0.0.0/0`.
+2. Test the webhook once.
+3. If MongoDB starts working immediately, the problem was the Atlas IP access list.
+4. Remove `0.0.0.0/0` and replace it with your Render outbound entries plus any local testing IPs you need.
 
 ### Local MongoDB options
 
@@ -111,7 +138,8 @@ Notes:
 
 | Issue | What to check |
 |--------|----------------|
-| Cannot connect or timeouts | Wrong URI, local MongoDB not running, blocked outbound access, or source IP missing from the Atlas IP access list |
+| Cannot connect or timeouts | Wrong URI, local MongoDB not running, blocked outbound access, or a local or Render source IP missing from the Atlas IP access list |
+| `SSL handshake failed` against `*.mongodb.net` | Often still an Atlas allowlist problem. Confirm Atlas includes all Render **Connect -> Outbound** entries and any local public IP used for testing |
 | Authentication failed | Wrong database user, wrong password, or password not URL-encoded |
 | Dashboard says there are no trades | Normal until the webhook has inserted at least one document |
 
@@ -178,7 +206,7 @@ What to be aware of on Render:
 - Render terminates public HTTPS at the edge and forwards traffic to your service over HTTP. You do not need to manage TLS certificates yourself for the default `onrender.com` URL.
 - Render web services must bind on `0.0.0.0`; Render expects the public HTTP server on its configured port and defaults to `PORT=10000`. Using Gunicorn through Render's Python runtime handles that for you.
 - Put all secrets in Render environment variables, not in the repo.
-- If MongoDB Atlas uses an IP allowlist, add the Render service's outbound IPs from the service's **Connect -> Outbound** panel.
+- If MongoDB Atlas uses an IP allowlist, open the service's **Connect -> Outbound** panel in Render and add every listed outbound IP or CIDR range to Atlas. Render can use any listed entry.
 - Render's filesystem is ephemeral. That is fine for this app because trades belong in MongoDB, but do not rely on local files for persistence.
 
 Important plan choice:
@@ -195,7 +223,7 @@ Important plan choice:
 | Server | Flask dev server | Gunicorn on Render |
 | HTTPS | Your tunnel or proxy handles it | Render handles it |
 | Secrets | `.env` on your machine | Render environment variables |
-| MongoDB Atlas allowlist | Your local or tunnel egress IP | Render outbound IPs |
+| MongoDB Atlas allowlist | Your local or tunnel egress IP | Every IP or CIDR range shown in Render **Connect -> Outbound** |
 | TradingView reliability | Good for manual tests, not ideal for always-on usage | Good on paid instances; risky on Free because of spin-down |
 | Filesystem persistence | Your local disk | Ephemeral unless you add external storage |
 
