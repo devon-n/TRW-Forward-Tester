@@ -8,6 +8,3 @@ ForwardTester
 Forward_Tester
 __pycache__/
 .venv/
-node_modules/
-package.json
-bun.lock
