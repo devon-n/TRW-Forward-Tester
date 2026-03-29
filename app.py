@@ -1,4 +1,3 @@
-import json
 import os
 from flask import Flask, request, jsonify, abort
 from pymongo import MongoClient
@@ -9,6 +8,7 @@ from config import minQtyDict, precisionDecimalDict
 # Import exchanges
 from exchanges.binance import place_order_binance
 from exchanges.bybit import place_order_bybit
+from exchanges.hyperliquid import place_order_hyperliquid
 
 load_dotenv()
 
@@ -17,7 +17,8 @@ app = Flask(__name__)
 
 @lru_cache(maxsize=1)
 def get_whitelisted_ips():
-    return set(os.environ.get('WHITELISTED_IPS', '').split(','))
+    raw = os.environ.get('WHITELISTED_IPS', '')
+    return {ip.strip() for ip in raw.split(',') if ip.strip()}
 
 # Decorator to restrict access to whitelisted IPs only
 def whitelist_ip(func):
@@ -67,7 +68,7 @@ def execute_order(data):
     quantity = data['strategy']['order_contracts']
     ticker = data['ticker']
     order_type = data.get('order_type', 'PAPER').upper()  # Default to paper trading
-    exchange = data.get('exchange', None)
+    exchange = (data.get('exchange') or '').upper()
 
     # Update min qty and precision
     ticker = ticker.replace('.P', '')
@@ -99,8 +100,17 @@ def execute_order(data):
                 record_trade(data, "Failed Real Order?")
                 print(f"Failed Order(Bybit): {e}")
                 return False
+        elif exchange == "HYPERLIQUID":
+            try:
+                order_response = place_order_hyperliquid(ticker, quantity, data)
+                record_trade(data, order_response)
+            except Exception as e:
+                record_trade(data, "Failed Real Order?")
+                print(f"Failed Order(Hyperliquid): {e}")
+                return False
         else:
-            print("Execution Error: No exchange value matching Bybit or Binance")
+            print("Execution Error: No exchange value matching Binance, Bybit, or Hyperliquid")
+            return False
     else:
         side = data['strategy']['order_action'].upper()
         print(f"Simulated paper order: {order_type} - {side} {quantity} {ticker}")
