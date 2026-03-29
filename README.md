@@ -11,10 +11,11 @@ This repo does not decide when to trade. Strategy logic, entries, exits, sizing,
 1. Install Python dependencies and create `.env`.
 2. Fill in environment variables.
 3. Configure MongoDB and set `MONGO_URI`.
-4. Expose the webhook server on a public `http://` or `https://` endpoint.
-5. Configure TradingView or another sender to `POST` valid JSON to `/webhook`.
-6. Run the Flask app.
-7. Optionally run the Streamlit dashboard.
+4. Choose how you want to run the webhook service: local debugging or Render hosting.
+5. Expose the webhook server on a public `http://` or `https://` endpoint.
+6. Configure TradingView or another sender to `POST` valid JSON to `/webhook`.
+7. Run the Flask app.
+8. Optionally run the Streamlit dashboard.
 
 ---
 
@@ -116,6 +117,90 @@ Notes:
 
 ---
 
+## Choose how to run the service
+
+You have two practical paths:
+
+- **Local debugging**: run the Flask dev server on your machine, inspect logs quickly, and use a tunnel if you want TradingView to reach it.
+- **Render hosting**: deploy the Flask app as a managed public web service with HTTPS, auto-deploys, and environment variables in the Render dashboard.
+
+### Path A: local debugging
+
+Use this when you are developing, debugging payloads, or testing exchange behavior manually.
+
+What to do:
+
+1. Run the Flask app locally with `python app.py`.
+2. Send test requests directly to `http://localhost:5000/webhook` with `curl`, Postman, or pytest.
+3. If you want TradingView to hit your local machine, expose it with a tunnel such as ngrok or Cloudflare Tunnel and point TradingView to the tunnel URL.
+
+What to be aware of:
+
+- TradingView will not send to arbitrary ports; it only accepts webhook URLs on ports `80` and `443`.
+- `localhost` is never reachable from TradingView directly.
+- If a tunnel or reverse proxy sits in front of your app, `WHITELISTED_IPS` must allow the source IP your Flask app actually sees.
+- The Flask dev server is for development, not production.
+
+### Path B: optional hosting on Render
+
+Use this when you want a managed public HTTPS endpoint without running your own VPS or reverse proxy.
+
+Render setup, based on the current official Flask and web-service docs:
+
+- [Deploy a Flask App on Render](https://render.com/docs/deploy-flask)
+- [Deploy for Free](https://render.com/docs/free)
+- [Outbound IP Addresses](https://render.com/docs/outbound-ip-addresses)
+
+1. Push the repo to GitHub, GitLab, or Bitbucket.
+2. In the Render dashboard, create **New -> Web Service** and connect the repo.
+3. Use these settings:
+
+   | Setting | Value |
+   |---------|-------|
+   | Runtime | `Python 3` |
+   | Build Command | `pip install -r requirements.txt` |
+   | Start Command | `gunicorn app:app` |
+
+4. In **Environment**, add the same variables you use locally:
+   - `API_KEY`
+   - `API_SECRET`
+   - `WHITELISTED_IPS`
+   - `MONGO_URI`
+   - `HYPERLIQUID_WALLET_ADDRESS`
+   - `HYPERLIQUID_PRIVATE_KEY`
+   - `HYPERLIQUID_SLIPPAGE`
+5. Deploy the service and wait for the first build to finish.
+6. Use the generated `https://<service>.onrender.com/webhook` URL in TradingView, or attach a custom domain later.
+
+What to be aware of on Render:
+
+- `gunicorn app:app` matches the existing `Procfile` and is the recommended Flask start command in Render's current docs.
+- Render terminates public HTTPS at the edge and forwards traffic to your service over HTTP. You do not need to manage TLS certificates yourself for the default `onrender.com` URL.
+- Render web services must bind on `0.0.0.0`; Render expects the public HTTP server on its configured port and defaults to `PORT=10000`. Using Gunicorn through Render's Python runtime handles that for you.
+- Put all secrets in Render environment variables, not in the repo.
+- If MongoDB Atlas uses an IP allowlist, add the Render service's outbound IPs from the service's **Connect -> Outbound** panel.
+- Render's filesystem is ephemeral. That is fine for this app because trades belong in MongoDB, but do not rely on local files for persistence.
+
+Important plan choice:
+
+- A **Render Free web service is not a good fit for live TradingView webhooks**. Render's current docs say Free services spin down after 15 minutes without inbound traffic and can take about one minute to spin back up. TradingView cancels a webhook if the receiver takes longer than about 3 seconds. That means idle cold starts can cause missed alerts.
+- Inference from those docs: use local-plus-tunnel only for development, and use a Render paid web service if you want Render to receive TradingView webhooks reliably.
+
+### Local debugging vs Render hosting
+
+| Topic | Local debugging | Render hosting |
+|------|------------------|----------------|
+| Best for | Development and payload debugging | Public hosted webhook endpoint |
+| Public URL | Needs a tunnel or your own reverse proxy | Built in via `onrender.com` or custom domain |
+| Server | Flask dev server | Gunicorn on Render |
+| HTTPS | Your tunnel or proxy handles it | Render handles it |
+| Secrets | `.env` on your machine | Render environment variables |
+| MongoDB Atlas allowlist | Your local or tunnel egress IP | Render outbound IPs |
+| TradingView reliability | Good for manual tests, not ideal for always-on usage | Good on paid instances; risky on Free because of spin-down |
+| Filesystem persistence | Your local disk | Ephemeral unless you add external storage |
+
+---
+
 ## Webhook sender setup
 
 This app expects a JSON `POST` to `/webhook`. TradingView is the common sender, but any system that sends the same JSON shape works.
@@ -197,6 +282,8 @@ Notes:
 
 ## Run the webhook server
 
+### Local run
+
 ```bash
 python app.py
 ```
@@ -204,6 +291,16 @@ python app.py
 The Flask app listens on `0.0.0.0:5000` with `debug=True`.
 
 For TradingView, do not send alerts directly to `:5000`. Put a reverse proxy or load balancer in front of the app and serve the public endpoint on port `80` or `443`.
+
+### Render run
+
+On Render, do not start the service with `python app.py`. Use:
+
+```bash
+gunicorn app:app
+```
+
+That is already the command in `Procfile` and matches Render's current Flask deployment guide.
 
 ---
 
