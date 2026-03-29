@@ -116,9 +116,11 @@ Set `WHITELISTED_IPS` to a comma-separated list of those IPs (and any other send
 
 ```bash
 python -m venv .venv
-.venv\Scripts\activate
+Windows: .venv\Scripts\activate
+Linux/macOS: source .venv/bin/activate
 pip install -r requirements.txt
-copy .env.sample .env
+Windows: copy .env.sample .env
+Linux/macOS: cp .env.sample .env
 ```
 
 Edit `.env` (see next section).

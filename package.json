@@ -1,0 +1,9 @@
+{
+  "name": "trw-forward-tester",
+  "private": true,
+  "scripts": {
+    "lint": "\".venv\\\\Scripts\\\\python.exe\" -m pip install ruff && \".venv\\\\Scripts\\\\python.exe\" -m ruff check .",
+    "build": "\".venv\\\\Scripts\\\\python.exe\" -m compileall app.py config.py position_sizing.py dashboard exchanges tests",
+    "test": "\".venv\\\\Scripts\\\\python.exe\" -m pytest"
+  }
+}

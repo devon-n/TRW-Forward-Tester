@@ -1,13 +1,12 @@
+import os
+import sys
+
 import pandas as pd
 import streamlit as st
-
 from helpers import calculate_profit, truncate_name
 from dotenv import load_dotenv
 from pymongo import MongoClient # type: ignore
-import os
 
-import sys
-import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from config import minQtyDict, precisionDecimalDict
 

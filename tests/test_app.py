@@ -81,13 +81,14 @@ def test_execute_order_real(mock_record_trade, mock_um_futures):
     }
 
     result = execute_order(data)
-    assert result == True
+    assert result
 
     # Verify that the Binance client was called
     mock_client.new_order.assert_called_once()
     mock_record_trade.assert_called_once()
 
 
+@patch.dict(os.environ, {'HYPERLIQUID_SLIPPAGE': ''}, clear=False)
 @patch('exchanges.hyperliquid.create_hyperliquid_exchange')
 @patch('app.record_trade')
 def test_execute_order_real_hyperliquid(mock_record_trade, mock_create_exchange):
@@ -99,7 +100,7 @@ def test_execute_order_real_hyperliquid(mock_record_trade, mock_create_exchange)
 
     data = {
         'exchange': 'HYPERLIQUID',
-        'strategy': {'order_action': 'BUY', 'order_contracts': '0.001', 'order_price': 50000,
+        'strategy': {'order_action': 'BUY', 'order_contracts': '0.002', 'order_price': 50000,
                      'position_size': 0.001, 'order_id': '123', 'market_position': 'long',
                      'market_position_size': 0.001, 'prev_market_position': 'flat',
                      'prev_market_position_size': 0},
@@ -111,7 +112,7 @@ def test_execute_order_real_hyperliquid(mock_record_trade, mock_create_exchange)
     }
 
     result = execute_order(data)
-    assert result == True
+    assert result
 
     mock_exchange.set_margin_mode.assert_called_once_with('isolated', 'BTC/USDC:USDC', {'leverage': 10})
     mock_exchange.create_order.assert_called_once_with('BTC/USDC:USDC', 'market', 'buy', 0.002, 50000.0, {})
@@ -134,7 +135,7 @@ def test_execute_order_paper(mock_record_trade):
     }
 
     result = execute_order(data)
-    assert result == True
+    assert result
     mock_record_trade.assert_called_once_with(data, None)
 
 @patch('app.trades_collection')

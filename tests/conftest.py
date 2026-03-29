@@ -11,12 +11,11 @@ mock_db.trades = mock_collection
 
 # Apply the patch globally before any imports
 sys.modules['pymongo'] = MagicMock()
-from unittest.mock import patch
 patcher = patch('pymongo.MongoClient', return_value=mock_mongo_client)
 patcher.start()
 
 # Now it's safe to import app
-from app import app
+from app import app  # noqa: E402
 
 @pytest.fixture
 def client():

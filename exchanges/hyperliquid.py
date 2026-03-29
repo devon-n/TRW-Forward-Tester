@@ -12,34 +12,18 @@ import json
 import os
 
 import ccxt
+from packaging.version import parse
 
 # ccxt<4.5 still embeds deprecated fields (e.g. brokerCode) in POST /exchange; Hyperliquid returns 422 deserialize.
-_MIN_CCXT_FOR_HYPERLIQUID = (4, 5, 0)
-
-
-def _ccxt_version_tuple():
-    v = getattr(ccxt, '__version__', '') or '0'
-    parts = []
-    for piece in v.split('.'):
-        digits = ''
-        for ch in piece:
-            if ch.isdigit():
-                digits += ch
-            else:
-                break
-        parts.append(int(digits) if digits else 0)
-        if len(parts) >= 3:
-            break
-    while len(parts) < 3:
-        parts.append(0)
-    return tuple(parts[:3])
+_MIN_CCXT_FOR_HYPERLIQUID = "4.5.0"
 
 
 def _assert_ccxt_hyperliquid_compatible():
-    if _ccxt_version_tuple() < _MIN_CCXT_FOR_HYPERLIQUID:
+    current_version = getattr(ccxt, '__version__', '0') or '0'
+    if parse(current_version) < parse(_MIN_CCXT_FOR_HYPERLIQUID):
         ver = getattr(ccxt, '__version__', 'unknown')
         raise RuntimeError(
-            f'Hyperliquid requires ccxt>={_MIN_CCXT_FOR_HYPERLIQUID[0]}.{_MIN_CCXT_FOR_HYPERLIQUID[1]} '
+            f'Hyperliquid requires ccxt>={_MIN_CCXT_FOR_HYPERLIQUID} '
             f'(found {ver}). Older builds send JSON the API rejects with HTTP 422. '
             f'Install deps from this repo: pip install -r requirements.txt'
         )
@@ -126,8 +110,8 @@ def place_order_hyperliquid(symbol, qty, data):
 
     print(f"Preparing order for Hyperliquid: REAL - {side.upper()} {qty} {hyperliquid_symbol} with leverage {leverage}")
 
-    if leverage != 0:
-        set_leverage_hyperliquid(exchange, hyperliquid_symbol, leverage)
+    if leverage != 0 and not set_leverage_hyperliquid(exchange, hyperliquid_symbol, leverage):
+        raise RuntimeError(f'Failed to set Hyperliquid leverage to {leverage}x for {hyperliquid_symbol}')
 
     print(f"Sending Order: {json.dumps(data)}\n")
 
@@ -151,8 +135,10 @@ def set_leverage_hyperliquid(exchange, symbol, leverage):
     try:
         exchange.set_margin_mode('isolated', symbol, {'leverage': leverage})
         print(f"Leverage successfully set to {leverage}x")
+        return True
     except Exception as e:
         print(f"Error while adjusting leverage(Hyperliquid): {e}")
+        return False
 
 
 def cancel_orders_hyperliquid(order_ids, symbol, params=None):
@@ -211,4 +197,4 @@ def fetch_fills_by_time_hyperliquid(start_time, end_time):
 def _all_cancellations_succeeded(cancel_results):
     if not cancel_results:
         return False
-    return all(result.get('status') == 'success' for result in cancel_results)
+    return all(result.get('status') == 'canceled' for result in cancel_results)
