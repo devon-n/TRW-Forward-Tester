@@ -20,13 +20,22 @@ This repo does not decide when to trade. Strategy logic, entries, exits, sizing,
 
 ## Install
 
-```bash
+### Windows
+
+```powershell
 python -m venv .venv
-Windows: .venv\Scripts\activate
-Linux/macOS: source .venv/bin/activate
+.venv\Scripts\activate
 pip install -r requirements.txt
-Windows: copy .env.sample .env
-Linux/macOS: cp .env.sample .env
+copy .env.sample .env
+```
+
+### macOS and Linux
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.sample .env
 ```
 
 ---

@@ -111,11 +111,35 @@ def extract_order_params(data):
     return params
 
 
+def _get_order_action_hyperliquid(data):
+    if not isinstance(data, dict):
+        raise ValueError(
+            'Hyperliquid order payload must be a dictionary with strategy.order_action. '
+            f'Received: {sanitize_dict(data)}'
+        )
+
+    strategy = data.get('strategy')
+    if not isinstance(strategy, dict):
+        raise ValueError(
+            'Hyperliquid order payload is missing strategy.order_action because strategy is absent or invalid. '
+            f'Payload: {json.dumps(sanitize_dict(data))}'
+        )
+
+    action = strategy.get('order_action')
+    if action is None or action == '':
+        raise ValueError(
+            'Hyperliquid order payload is missing required field strategy.order_action. '
+            f'Payload: {json.dumps(sanitize_dict(data))}'
+        )
+
+    return str(action).lower()
+
+
 def place_order_hyperliquid(symbol, qty, data):
     """Market order: amount + reference price + optional params (slippage, reduceOnly, etc.)."""
     exchange = create_hyperliquid_exchange()
     hyperliquid_symbol = normalize_symbol_hyperliquid(symbol)
-    side = data['strategy']['order_action'].lower()
+    side = _get_order_action_hyperliquid(data)
     leverage = int(float(data.get('leverage', 0) or 0))
     params = extract_order_params(data)
 
@@ -147,7 +171,7 @@ def set_leverage_hyperliquid(exchange, symbol, leverage):
         exchange.set_margin_mode('isolated', symbol, {'leverage': leverage})
         print(f"Leverage successfully set to {leverage}x")
         return True
-    except Exception as error:
+    except ccxt.BaseError as error:
         print(f"Error while adjusting leverage(Hyperliquid): {error}")
         return False
 
