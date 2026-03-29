@@ -1,4 +1,3 @@
-import json
 import os
 from flask import Flask, request, jsonify, abort
 from pymongo import MongoClient
@@ -18,7 +17,8 @@ app = Flask(__name__)
 
 @lru_cache(maxsize=1)
 def get_whitelisted_ips():
-    return set(os.environ.get('WHITELISTED_IPS', '').split(','))
+    raw = os.environ.get('WHITELISTED_IPS', '')
+    return {ip.strip() for ip in raw.split(',') if ip.strip()}
 
 # Decorator to restrict access to whitelisted IPs only
 def whitelist_ip(func):

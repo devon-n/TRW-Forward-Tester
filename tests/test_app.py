@@ -114,7 +114,7 @@ def test_execute_order_real_hyperliquid(mock_record_trade, mock_create_exchange)
     assert result == True
 
     mock_exchange.set_margin_mode.assert_called_once_with('isolated', 'BTC/USDC:USDC', {'leverage': 10})
-    mock_exchange.create_order.assert_called_once_with('BTC/USDC:USDC', 'market', 'buy', 0.002, None, {})
+    mock_exchange.create_order.assert_called_once_with('BTC/USDC:USDC', 'market', 'buy', 0.002, 50000.0, {})
     mock_record_trade.assert_called_once()
 
 @patch('app.record_trade')
