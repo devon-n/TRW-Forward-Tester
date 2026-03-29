@@ -1,4 +1,5 @@
 import os
+import hmac
 from flask import Flask, request, jsonify, abort
 from pymongo import MongoClient
 from dotenv import load_dotenv
@@ -21,6 +22,20 @@ trades_collection = None
 def get_whitelisted_ips():
     raw = os.environ.get('WHITELISTED_IPS', '')
     return {ip.strip() for ip in raw.split(',') if ip.strip()}
+
+
+def get_webhook_secret():
+    return os.environ.get('WEBHOOK_SECRET', '').strip()
+
+
+def redact_webhook_payload(data):
+    if not isinstance(data, dict):
+        return data
+
+    redacted = dict(data)
+    if 'passphrase' in redacted:
+        redacted['passphrase'] = '***REDACTED***'
+    return redacted
 
 # Decorator to restrict access to whitelisted IPs only
 def whitelist_ip(func):
@@ -154,11 +169,21 @@ def webhook():
         print("Raw body:", request.data)
         return jsonify({"status": "error", "reason": "invalid JSON"}), 400
 
-    print(f"\n data: {data}\n")
-
     if not data or not isinstance(data, dict):
         print("Empty or invalid webhook data received — ignored")
         return jsonify({"status": "ignored", "reason": "empty payload"}), 400
+
+    webhook_secret = get_webhook_secret()
+    passphrase = data.get('passphrase', '')
+    if (
+        not webhook_secret
+        or not isinstance(passphrase, str)
+        or not hmac.compare_digest(passphrase, webhook_secret)
+    ):
+        print("Unauthorized webhook request rejected")
+        return jsonify({"status": "error", "message": "Unauthorized"}), 401
+
+    print(f"\n data: {redact_webhook_payload(data)}\n")
 
     success = execute_order(data)
 

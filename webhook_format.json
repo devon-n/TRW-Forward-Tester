@@ -1,5 +1,6 @@
 {
   "strategyName": "_______",
+  "passphrase": "YOUR_SECRET_HERE",
   "order_type": "PAPER",
   "time": "{{timenow}}",
   "exchange": "{{exchange}}",

@@ -15,7 +15,15 @@ patcher = patch('pymongo.MongoClient', return_value=mock_mongo_client)
 patcher.start()
 
 # Now it's safe to import app
+import app as app_module  # noqa: E402
 from app import app  # noqa: E402
+
+
+@pytest.fixture(autouse=True)
+def clear_app_caches():
+    app_module.get_whitelisted_ips.cache_clear()
+    yield
+    app_module.get_whitelisted_ips.cache_clear()
 
 @pytest.fixture
 def client():
