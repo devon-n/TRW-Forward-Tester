@@ -10,30 +10,7 @@ import json
 import os
 
 import ccxt
-
-_SENSITIVE_LOG_KEYS = {
-    'access_token',
-    'api_key',
-    'authorization',
-    'key',
-    'password',
-    'private_key',
-    'secret',
-    'token',
-}
-
-def sanitize_dict(value):
-    if isinstance(value, dict):
-        sanitized = {}
-        for key, item in value.items():
-            if key.lower() in _SENSITIVE_LOG_KEYS:
-                sanitized[key] = '***'
-            else:
-                sanitized[key] = sanitize_dict(item)
-        return sanitized
-    if isinstance(value, list):
-        return [sanitize_dict(item) for item in value]
-    return value
+from logging_utils import sanitize_dict
 
 
 def create_hyperliquid_exchange(require_private_key=True):

@@ -1,6 +1,7 @@
 import json
 import os
 from binance.um_futures import UMFutures
+from logging_utils import sanitize_dict
 
 
 def place_order_binance(symbol, qty, data):
@@ -12,7 +13,7 @@ def place_order_binance(symbol, qty, data):
     if leverage != 0:
         set_leverage_binance(client, symbol, leverage)
 
-    print(f"Sending Order: {json.dumps(data)}\n")
+    print(f"Sending Order: {json.dumps(sanitize_dict(data))}\n")
 
     order_response = client.new_order(
         symbol=symbol,

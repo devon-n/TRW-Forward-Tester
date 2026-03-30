@@ -1,6 +1,7 @@
 import pytest
 from unittest.mock import patch, MagicMock
 import os
+from logging_utils import sanitize_dict
 
 
 def build_webhook_payload(passphrase='test-secret'):
@@ -40,7 +41,9 @@ def test_webhook(client):
 
         assert response.status_code == 200, f"Expected 200, got {response.status_code}. Response data: {response.data}"
         assert response.json == {"code": "success", "message": "Order executed"}
-        mock_execute_order.assert_called_once_with(data)
+        expected_data = dict(data)
+        expected_data.pop('passphrase')
+        mock_execute_order.assert_called_once_with(expected_data)
 
 @patch.dict(os.environ, {'WHITELISTED_IPS': '127.0.0.1'})
 def test_whitelist_ip_decorator():
@@ -173,6 +176,29 @@ def test_execute_order_paper(mock_record_trade):
     assert result
     mock_record_trade.assert_called_once_with(data, None)
 
+
+@patch('app.record_trade')
+def test_execute_order_defaults_missing_order_type(mock_record_trade):
+    from app import execute_order
+
+    data = {
+        'strategy': {'order_action': 'SELL', 'order_contracts': '0.001', 'order_price': 3000,
+                     'position_size': 0.001, 'order_id': '123', 'market_position': 'short',
+                     'market_position_size': 0.001, 'prev_market_position': 'flat',
+                     'prev_market_position_size': 0},
+        'ticker': 'ETHUSDT',
+        'leverage': 5,
+        'passphrase': 'test-secret',
+        'bar': {'time': '2023-01-01T00:00:00Z', 'close': 3000},
+        'strategyName': 'TestStrategy'
+    }
+
+    result = execute_order(data)
+    assert result
+    assert data['order_type'] == 'PAPER'
+    assert 'passphrase' not in data
+    mock_record_trade.assert_called_once_with(data, None)
+
 @patch('app.trades_collection')
 def test_record_trade(mock_trades_collection):
     from app import record_trade
@@ -231,3 +257,15 @@ def test_webhook_empty_payload(mock_execute_order, client):
     # Check for either 'empty' in status or reason fields
     response_text = str(response.json).lower()
     assert 'empty' in response_text or 'missing' in response_text
+
+
+def test_sanitize_dict_redacts_passphrase():
+    payload = {
+        'passphrase': 'test-secret',
+        'strategy': {'order_action': 'buy'},
+    }
+
+    sanitized = sanitize_dict(payload)
+
+    assert sanitized['passphrase'] == '***REDACTED***'
+    assert sanitized['strategy']['order_action'] == 'buy'

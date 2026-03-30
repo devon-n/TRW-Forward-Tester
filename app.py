@@ -5,6 +5,7 @@ from pymongo import MongoClient
 from dotenv import load_dotenv
 from functools import lru_cache
 from config import minQtyDict, precisionDecimalDict
+from logging_utils import sanitize_dict
 
 # Import exchanges
 from exchanges.binance import place_order_binance
@@ -26,16 +27,6 @@ def get_whitelisted_ips():
 
 def get_webhook_secret():
     return os.environ.get('WEBHOOK_SECRET', '').strip()
-
-
-def redact_webhook_payload(data):
-    if not isinstance(data, dict):
-        return data
-
-    redacted = dict(data)
-    if 'passphrase' in redacted:
-        redacted['passphrase'] = '***REDACTED***'
-    return redacted
 
 # Decorator to restrict access to whitelisted IPs only
 def whitelist_ip(func):
@@ -82,7 +73,7 @@ def record_trade(data, order_response):
             "side": data['strategy']['order_action'].upper(),
             "quantity": data['strategy']['order_contracts'],
             "leverage": data["leverage"],
-            "order_type": data["order_type"],
+            "order_type": data.get("order_type", "PAPER"),
             "order_response": order_response,
             "strategy_position_size": data["strategy"]["position_size"],
             "strategy_order_id": data["strategy"]["order_id"],
@@ -96,10 +87,12 @@ def record_trade(data, order_response):
 
 def execute_order(data):
     """Executes a real Bybit/Binance order or simulates it for paper trading."""
+    data.pop('passphrase', None)
     quantity = data['strategy']['order_contracts']
     ticker = data['ticker']
-    order_type = data.get('order_type', 'PAPER').upper()  # Default to paper trading
+    order_type = str(data.get('order_type', 'PAPER')).upper()
     exchange = (data.get('exchange') or '').upper()
+    data['order_type'] = order_type
 
     # Update min qty and precision
     ticker = ticker.replace('.P', '')
@@ -166,7 +159,7 @@ def webhook():
     except Exception as e:
         print("Invalid JSON received")
         print("Error:", e)
-        print("Raw body:", request.data)
+        print(f"Raw body length: {len(request.data)} bytes")
         return jsonify({"status": "error", "reason": "invalid JSON"}), 400
 
     if not data or not isinstance(data, dict):
@@ -183,7 +176,10 @@ def webhook():
         print("Unauthorized webhook request rejected")
         return jsonify({"status": "error", "message": "Unauthorized"}), 401
 
-    print(f"\n data: {redact_webhook_payload(data)}\n")
+    print(f"\n data: {sanitize_dict(data)}\n")
+
+    data = dict(data)
+    data.pop('passphrase', None)
 
     success = execute_order(data)
 
