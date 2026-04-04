@@ -1,6 +1,7 @@
 import json
 import os
 from pybit.unified_trading import HTTP
+from logging_utils import sanitize_dict
 
 
 def place_order_bybit(symbol, qty, data):
@@ -15,7 +16,7 @@ def place_order_bybit(symbol, qty, data):
     if leverage != 0:
         set_leverage_bybit(session, symbol, leverage)
 
-    print(f"Sending Order: {json.dumps(data)}\n")
+    print(f"Sending Order: {json.dumps(sanitize_dict(data))}\n")
 
     order_response = session.place_order(
         category="linear",

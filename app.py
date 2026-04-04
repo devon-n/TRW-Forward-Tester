@@ -1,23 +1,32 @@
-import json
 import os
+import hmac
 from flask import Flask, request, jsonify, abort
 from pymongo import MongoClient
 from dotenv import load_dotenv
 from functools import lru_cache
 from config import minQtyDict, precisionDecimalDict
+from logging_utils import sanitize_dict
 
 # Import exchanges
 from exchanges.binance import place_order_binance
 from exchanges.bybit import place_order_bybit
+from exchanges.hyperliquid import place_order_hyperliquid
 
 load_dotenv()
 
 app = Flask(__name__)
+mongo_client = None
+trades_collection = None
 
 
 @lru_cache(maxsize=1)
 def get_whitelisted_ips():
-    return set(os.environ.get('WHITELISTED_IPS', '').split(','))
+    raw = os.environ.get('WHITELISTED_IPS', '')
+    return {ip.strip() for ip in raw.split(',') if ip.strip()}
+
+
+def get_webhook_secret():
+    return os.environ.get('WEBHOOK_SECRET', '').strip()
 
 # Decorator to restrict access to whitelisted IPs only
 def whitelist_ip(func):
@@ -32,15 +41,29 @@ def whitelist_ip(func):
     return wrapper
 
 
-# Connect to MongoDB
-mongo_client = MongoClient(os.getenv('MONGO_URI'))
-db = mongo_client.trading
-trades_collection = db.trades
+def get_mongo_client():
+    """Create the Mongo client lazily so each Gunicorn worker owns its own pool."""
+    global mongo_client
+
+    if mongo_client is None:
+        mongo_uri = os.getenv('MONGO_URI')
+        if not mongo_uri:
+            raise RuntimeError("MONGO_URI is not set")
+        mongo_client = MongoClient(mongo_uri)
+    return mongo_client
+
+
+def get_trades_collection():
+    global trades_collection
+
+    if trades_collection is None:
+        trades_collection = get_mongo_client().trading.trades
+    return trades_collection
 
 def record_trade(data, order_response):
     """Records trade to MongoDB with strategy information."""
     try:
-        trades_collection.insert_one({
+        get_trades_collection().insert_one({
             "time": data["bar"]["time"],
             "strategy_name": data["strategyName"],
             "symbol": data["ticker"],
@@ -50,7 +73,7 @@ def record_trade(data, order_response):
             "side": data['strategy']['order_action'].upper(),
             "quantity": data['strategy']['order_contracts'],
             "leverage": data["leverage"],
-            "order_type": data["order_type"],
+            "order_type": data.get("order_type", "PAPER"),
             "order_response": order_response,
             "strategy_position_size": data["strategy"]["position_size"],
             "strategy_order_id": data["strategy"]["order_id"],
@@ -64,10 +87,12 @@ def record_trade(data, order_response):
 
 def execute_order(data):
     """Executes a real Bybit/Binance order or simulates it for paper trading."""
+    data.pop('passphrase', None)
     quantity = data['strategy']['order_contracts']
     ticker = data['ticker']
-    order_type = data.get('order_type', 'PAPER').upper()  # Default to paper trading
-    exchange = data.get('exchange', None)
+    order_type = str(data.get('order_type', 'PAPER')).upper()
+    exchange = (data.get('exchange') or '').upper()
+    data['order_type'] = order_type
 
     # Update min qty and precision
     ticker = ticker.replace('.P', '')
@@ -99,8 +124,17 @@ def execute_order(data):
                 record_trade(data, "Failed Real Order?")
                 print(f"Failed Order(Bybit): {e}")
                 return False
+        elif exchange == "HYPERLIQUID":
+            try:
+                order_response = place_order_hyperliquid(ticker, quantity, data)
+                record_trade(data, order_response)
+            except Exception as e:
+                record_trade(data, "Failed Real Order?")
+                print(f"Failed Order(Hyperliquid): {e}")
+                return False
         else:
-            print("Execution Error: No exchange value matching Bybit or Binance")
+            print("Execution Error: No exchange value matching Binance, Bybit, or Hyperliquid")
+            return False
     else:
         side = data['strategy']['order_action'].upper()
         print(f"Simulated paper order: {order_type} - {side} {quantity} {ticker}")
@@ -125,14 +159,27 @@ def webhook():
     except Exception as e:
         print("Invalid JSON received")
         print("Error:", e)
-        print("Raw body:", request.data)
+        print(f"Raw body length: {len(request.data)} bytes")
         return jsonify({"status": "error", "reason": "invalid JSON"}), 400
-
-    print(f"\n data: {data}\n")
 
     if not data or not isinstance(data, dict):
         print("Empty or invalid webhook data received — ignored")
         return jsonify({"status": "ignored", "reason": "empty payload"}), 400
+
+    webhook_secret = get_webhook_secret()
+    passphrase = data.get('passphrase', '')
+    if (
+        not webhook_secret
+        or not isinstance(passphrase, str)
+        or not hmac.compare_digest(passphrase, webhook_secret)
+    ):
+        print("Unauthorized webhook request rejected")
+        return jsonify({"status": "error", "message": "Unauthorized"}), 401
+
+    print(f"\n data: {sanitize_dict(data)}\n")
+
+    data = dict(data)
+    data.pop('passphrase', None)
 
     success = execute_order(data)
 

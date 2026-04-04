@@ -1,40 +1,51 @@
 import pytest
 from unittest.mock import patch, MagicMock
 import os
+from logging_utils import sanitize_dict
+
+
+def build_webhook_payload(passphrase='test-secret'):
+    return {
+        'strategyName': 'TestStrategy',
+        'passphrase': passphrase,
+        'ticker': 'BTCUSDT',
+        'bar': {'time': '2023-01-01T00:00:00Z', 'close': 50000},
+        'strategy': {
+            'order_action': 'buy',
+            'order_contracts': '0.001',
+            'order_price': 50000,
+            'position_size': 0.001,
+            'order_id': '123',
+            'market_position': 'long',
+            'market_position_size': 0.001,
+            'prev_market_position': 'flat',
+            'prev_market_position_size': 0
+        },
+        'leverage': 10,
+        'order_type': 'PAPER'
+    }
+
 
 def test_welcome(client):
     response = client.get('/')
     assert response.status_code == 200
     assert response.data == b""
 
-@patch.dict(os.environ, {'WHITELISTED_IPS': '127.0.0.1,192.168.1.1'})
+@patch.dict(os.environ, {'WHITELISTED_IPS': '127.0.0.1,192.168.1.1', 'WEBHOOK_SECRET': 'test-secret'})
 def test_webhook(client):
     with patch('app.execute_order') as mock_execute_order:
         mock_execute_order.return_value = True
-        data = {
-            'strategyName': 'TestStrategy',
-            'ticker': 'BTCUSDT',
-            'bar': {'time': '2023-01-01T00:00:00Z', 'close': 50000},
-            'strategy': {
-                'order_action': 'buy',
-                'order_contracts': '0.001',
-                'order_price': 50000,
-                'position_size': 0.001,
-                'order_id': '123',
-                'market_position': 'long',
-                'market_position_size': 0.001,
-                'prev_market_position': 'flat',
-                'prev_market_position_size': 0
-            },
-            'leverage': 10,
-            'order_type': 'PAPER'
-        }
+        data = build_webhook_payload()
 
         response = client.post('/webhook', json=data, headers={'X-Forwarded-For': '127.0.0.1'})
 
         assert response.status_code == 200, f"Expected 200, got {response.status_code}. Response data: {response.data}"
         assert response.json == {"code": "success", "message": "Order executed"}
+        expected_data = dict(data)
+        expected_data.pop('passphrase')
+        mock_execute_order.assert_called_once_with(expected_data)
 
+@patch.dict(os.environ, {'WHITELISTED_IPS': '127.0.0.1'})
 def test_whitelist_ip_decorator():
     from app import app, whitelist_ip
 
@@ -50,6 +61,33 @@ def test_whitelist_ip_decorator():
         with pytest.raises(Exception) as excinfo:
             test_func()
         assert "Access denied" in str(excinfo.value)
+
+
+@patch.dict(os.environ, {'WHITELISTED_IPS': '127.0.0.1', 'WEBHOOK_SECRET': 'test-secret'})
+@patch('app.execute_order')
+def test_webhook_missing_passphrase(mock_execute_order, client):
+    data = build_webhook_payload()
+    data.pop('passphrase')
+
+    response = client.post('/webhook', json=data, headers={'X-Forwarded-For': '127.0.0.1'})
+
+    mock_execute_order.assert_not_called()
+    assert response.status_code == 401
+    assert response.json == {"status": "error", "message": "Unauthorized"}
+
+
+@patch.dict(os.environ, {'WHITELISTED_IPS': '127.0.0.1', 'WEBHOOK_SECRET': 'test-secret'})
+@patch('app.execute_order')
+def test_webhook_wrong_passphrase(mock_execute_order, client):
+    response = client.post(
+        '/webhook',
+        json=build_webhook_payload(passphrase='wrong-secret'),
+        headers={'X-Forwarded-For': '127.0.0.1'}
+    )
+
+    mock_execute_order.assert_not_called()
+    assert response.status_code == 401
+    assert response.json == {"status": "error", "message": "Unauthorized"}
 
 @patch('exchanges.binance.UMFutures')
 @patch('app.record_trade')
@@ -81,10 +119,41 @@ def test_execute_order_real(mock_record_trade, mock_um_futures):
     }
 
     result = execute_order(data)
-    assert result == True
+    assert result
 
     # Verify that the Binance client was called
     mock_client.new_order.assert_called_once()
+    mock_record_trade.assert_called_once()
+
+
+@patch.dict(os.environ, {'HYPERLIQUID_SLIPPAGE': ''}, clear=False)
+@patch('exchanges.hyperliquid.create_hyperliquid_exchange')
+@patch('app.record_trade')
+def test_execute_order_real_hyperliquid(mock_record_trade, mock_create_exchange):
+    from app import execute_order
+
+    mock_exchange = MagicMock()
+    mock_create_exchange.return_value = mock_exchange
+    mock_exchange.create_order.return_value = {'id': 'abc123', 'status': 'open'}
+
+    data = {
+        'exchange': 'HYPERLIQUID',
+        'strategy': {'order_action': 'BUY', 'order_contracts': '0.002', 'order_price': 50000,
+                     'position_size': 0.001, 'order_id': '123', 'market_position': 'long',
+                     'market_position_size': 0.001, 'prev_market_position': 'flat',
+                     'prev_market_position_size': 0},
+        'ticker': 'BTCUSDT',
+        'leverage': 10,
+        'order_type': 'REAL',
+        'bar': {'time': '2023-01-01T00:00:00Z', 'close': 50000},
+        'strategyName': 'TestStrategy'
+    }
+
+    result = execute_order(data)
+    assert result
+
+    mock_exchange.set_margin_mode.assert_called_once_with('isolated', 'BTC/USDC:USDC', {'leverage': 10})
+    mock_exchange.create_order.assert_called_once_with('BTC/USDC:USDC', 'market', 'buy', 0.002, 50000.0, {})
     mock_record_trade.assert_called_once()
 
 @patch('app.record_trade')
@@ -104,7 +173,30 @@ def test_execute_order_paper(mock_record_trade):
     }
 
     result = execute_order(data)
-    assert result == True
+    assert result
+    mock_record_trade.assert_called_once_with(data, None)
+
+
+@patch('app.record_trade')
+def test_execute_order_defaults_missing_order_type(mock_record_trade):
+    from app import execute_order
+
+    data = {
+        'strategy': {'order_action': 'SELL', 'order_contracts': '0.001', 'order_price': 3000,
+                     'position_size': 0.001, 'order_id': '123', 'market_position': 'short',
+                     'market_position_size': 0.001, 'prev_market_position': 'flat',
+                     'prev_market_position_size': 0},
+        'ticker': 'ETHUSDT',
+        'leverage': 5,
+        'passphrase': 'test-secret',
+        'bar': {'time': '2023-01-01T00:00:00Z', 'close': 3000},
+        'strategyName': 'TestStrategy'
+    }
+
+    result = execute_order(data)
+    assert result
+    assert data['order_type'] == 'PAPER'
+    assert 'passphrase' not in data
     mock_record_trade.assert_called_once_with(data, None)
 
 @patch('app.trades_collection')
@@ -141,7 +233,7 @@ def test_record_trade(mock_trades_collection):
     assert call_args['order_type'] == 'PAPER'
     assert call_args['order_response'] == order_response
 
-@patch.dict(os.environ, {'WHITELISTED_IPS': '127.0.0.1' })
+@patch.dict(os.environ, {'WHITELISTED_IPS': '127.0.0.1', 'WEBHOOK_SECRET': 'test-secret'})
 @patch('app.execute_order')
 def test_webhook_empty_payload(mock_execute_order, client):
     """
@@ -165,3 +257,15 @@ def test_webhook_empty_payload(mock_execute_order, client):
     # Check for either 'empty' in status or reason fields
     response_text = str(response.json).lower()
     assert 'empty' in response_text or 'missing' in response_text
+
+
+def test_sanitize_dict_redacts_passphrase():
+    payload = {
+        'passphrase': 'test-secret',
+        'strategy': {'order_action': 'buy'},
+    }
+
+    sanitized = sanitize_dict(payload)
+
+    assert sanitized['passphrase'] == '***REDACTED***'
+    assert sanitized['strategy']['order_action'] == 'buy'
