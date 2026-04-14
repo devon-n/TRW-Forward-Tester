@@ -1,6 +1,11 @@
-import pytest
-from unittest.mock import patch, MagicMock
 import os
+from unittest.mock import (
+    MagicMock,
+    patch,
+)
+
+import pytest
+
 from logging_utils import sanitize_dict
 
 
@@ -47,7 +52,10 @@ def test_webhook(client):
 
 @patch.dict(os.environ, {'WHITELISTED_IPS': '127.0.0.1'})
 def test_whitelist_ip_decorator():
-    from app import app, whitelist_ip
+    from app import (
+        app,
+        whitelist_ip,
+    )
 
     @whitelist_ip
     def test_func():
@@ -73,7 +81,7 @@ def test_webhook_missing_passphrase(mock_execute_order, client):
 
     mock_execute_order.assert_not_called()
     assert response.status_code == 401
-    assert response.json == {"status": "error", "message": "Unauthorized"}
+    assert response.json == {"status": "error", "message": "Invalid Passphrase"}
 
 
 @patch.dict(os.environ, {'WHITELISTED_IPS': '127.0.0.1', 'WEBHOOK_SECRET': 'test-secret'})
@@ -87,7 +95,7 @@ def test_webhook_wrong_passphrase(mock_execute_order, client):
 
     mock_execute_order.assert_not_called()
     assert response.status_code == 401
-    assert response.json == {"status": "error", "message": "Unauthorized"}
+    assert response.json == {"status": "error", "message": "Invalid Passphrase"}
 
 @patch('exchanges.binance.UMFutures')
 @patch('app.record_trade')

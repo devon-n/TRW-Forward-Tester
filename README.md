@@ -50,7 +50,7 @@ Edit `.env` before running anything.
 | `API_KEY` | Binance USDT-M and Bybit credentials |
 | `API_SECRET` | Secret paired with `API_KEY` |
 | `WHITELISTED_IPS` | Comma-separated IPs allowed to call `POST /webhook` |
-| `WEBHOOK_SECRET` | Shared secret required in the webhook JSON `passphrase` field |
+| `WEBHOOK_SECRET` | Optional shared secret. If set, webhook JSON must include a matching `passphrase` field |
 | `MONGO_URI` | MongoDB connection string |
 | `HYPERLIQUID_WALLET_ADDRESS` | Hyperliquid wallet address |
 | `HYPERLIQUID_PRIVATE_KEY` | Hyperliquid private key for signed order actions |
@@ -59,7 +59,7 @@ Edit `.env` before running anything.
 Notes:
 
 - Binance and Bybit share the same `API_KEY` and `API_SECRET` variable names in this app.
-- Every webhook request must include a top-level `passphrase` field that exactly matches `WEBHOOK_SECRET`.
+- If `WEBHOOK_SECRET` is set in the environment, every webhook request must include a top-level `passphrase` field that matches it. If left empty, this check is bypassed.
 - Only the credentials for the exchange named in a `REAL` webhook need to be valid for that request flow.
 - Hyperliquid public info calls use the wallet address only; signed order actions also need the private key.
 
@@ -278,7 +278,7 @@ Set `WHITELISTED_IPS` to a comma-separated list containing those IPs and any add
    - `{{strategy.order.contracts}}`
    - `{{strategy.position_size}}`
 7. Set literal values such as `order_type` and `exchange`, or expose them from Pine if you prefer.
-8. Set `passphrase` to the same literal secret value you configured in `WEBHOOK_SECRET`.
+8. If you configured `WEBHOOK_SECRET`, set `passphrase` to that same literal value. If not, you can omit it.
 9. Save the alert and watch the TradingView alert log if delivery fails.
 
 Keep the message as strict JSON. If the body is not valid JSON, Flask returns `400`.
@@ -290,7 +290,7 @@ Use `webhook_format.json` as the template. Important fields:
 | Field | Purpose |
 |--------|---------|
 | `order_type` | `PAPER` or `REAL` |
-| `passphrase` | Must exactly match `WEBHOOK_SECRET` |
+| `passphrase` | Must match `WEBHOOK_SECRET` (if configured) |
 | `exchange` | For `REAL` only: `BINANCE`, `BYBIT`, or `HYPERLIQUID` |
 | `ticker` | Symbol, normalized inside the app |
 | `leverage` | Passed to exchange helpers where supported |
@@ -307,7 +307,7 @@ Notes:
 | Symptom | What to check |
 |--------|----------------|
 | `403` from Forward Tester | Sender IP is not in `WHITELISTED_IPS` |
-| `401` from Forward Tester | `passphrase` is missing or does not match `WEBHOOK_SECRET` |
+| `401` from Forward Tester | `passphrase` is missing or wrong (only when `WEBHOOK_SECRET` is set) |
 | `400` invalid JSON | Alert body is malformed JSON |
 | TradingView never reaches the server | Wrong port, firewall, reverse proxy, or bad URL |
 | Timeouts | Flask app, exchange call, or MongoDB write is taking too long |
@@ -354,7 +354,7 @@ The dashboard needs `MONGO_URI` and at least one trade in `trading.trades`.
 
 1. A sender posts JSON to `POST /webhook`.
 2. The client IP must be in `WHITELISTED_IPS` or the request gets `403`.
-3. The webhook JSON `passphrase` must match `WEBHOOK_SECRET` or the request gets `401`.
+3. If `WEBHOOK_SECRET` is configured, the JSON `passphrase` must match it or the request gets `401`.
 4. Invalid or empty JSON gets `400`.
 5. Quantity rules from `config.py` normalize the symbol, enforce minimum quantity, and apply decimal precision where configured.
 6. If `order_type` is `PAPER`, no exchange call is made and the event is still saved to MongoDB.

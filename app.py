@@ -1,16 +1,26 @@
-import os
 import hmac
-from flask import Flask, request, jsonify, abort
-from pymongo import MongoClient
-from dotenv import load_dotenv
+import os
 from functools import lru_cache
-from config import minQtyDict, precisionDecimalDict
-from logging_utils import sanitize_dict
+
+from dotenv import load_dotenv
+from flask import (
+    Flask,
+    abort,
+    jsonify,
+    request,
+)
+from pymongo import MongoClient
+
+from config import (
+    minQtyDict,
+    precisionDecimalDict,
+)
 
 # Import exchanges
 from exchanges.binance import place_order_binance
 from exchanges.bybit import place_order_bybit
 from exchanges.hyperliquid import place_order_hyperliquid
+from logging_utils import sanitize_dict
 
 load_dotenv()
 
@@ -168,13 +178,16 @@ def webhook():
 
     webhook_secret = get_webhook_secret()
     passphrase = data.get('passphrase', '')
+    
+    # Authentication: Only enforce if WEBHOOK_SECRET is configured in environment
     if (
-        not webhook_secret
-        or not isinstance(passphrase, str)
-        or not hmac.compare_digest(passphrase, webhook_secret)
+        webhook_secret and (
+            not isinstance(passphrase, str)
+            or not hmac.compare_digest(passphrase, webhook_secret)
+        )
     ):
         print("Unauthorized webhook request rejected")
-        return jsonify({"status": "error", "message": "Unauthorized"}), 401
+        return jsonify({"status": "error", "message": "Invalid Passphrase"}), 401
 
     print(f"\n data: {sanitize_dict(data)}\n")
 
