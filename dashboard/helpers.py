@@ -14,8 +14,8 @@ def calculate_profit(row, strategy_balances):
         "lastTradeDate": current_date,  # Set to minimum timestamp initially
     })
 
-    maker_fee_rate = 0.002 # 0.02%
-    taker_fee_rate = 0.005 # 0.05%
+    maker_fee_rate = 0.002 # 0.2%
+    taker_fee_rate = 0.005 # 0.5%
     slippage = 0.0001
     notional_value = row["quantity"] * row["order_price"]
     maker_fee = notional_value * maker_fee_rate
