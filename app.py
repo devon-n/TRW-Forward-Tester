@@ -1,4 +1,5 @@
 import hmac
+import json
 import os
 from functools import lru_cache
 
@@ -29,6 +30,24 @@ mongo_client = None
 trades_collection = None
 
 
+REQUIRED_WEBHOOK_FIELDS = (
+    ('strategyName',),
+    ('ticker',),
+    ('bar', 'time'),
+    ('bar', 'close'),
+    ('strategy', 'order_action'),
+    ('strategy', 'order_contracts'),
+    ('strategy', 'order_price'),
+    ('strategy', 'position_size'),
+    ('strategy', 'order_id'),
+    ('strategy', 'market_position'),
+    ('strategy', 'market_position_size'),
+    ('strategy', 'prev_market_position'),
+    ('strategy', 'prev_market_position_size'),
+    ('leverage',),
+)
+
+
 @lru_cache(maxsize=1)
 def get_whitelisted_ips():
     raw = os.environ.get('WHITELISTED_IPS', '')
@@ -37,6 +56,56 @@ def get_whitelisted_ips():
 
 def get_webhook_secret():
     return os.environ.get('WEBHOOK_SECRET', '').strip()
+
+
+def build_failure(code, stage, message):
+    return {
+        "code": code,
+        "stage": stage,
+        "message": message,
+    }
+
+
+def log_failure(failure, error=None):
+    event = {"failure": failure}
+    if error is not None:
+        event["exception_type"] = type(error).__name__
+    print(f"Structured failure: {json.dumps(sanitize_dict(event), sort_keys=True)}")
+
+
+def validate_webhook_payload(data):
+    """Validate fields already required by execution and persistence paths."""
+    for path in REQUIRED_WEBHOOK_FIELDS:
+        current = data
+        traversed = []
+        for key in path:
+            traversed.append(key)
+            if not isinstance(current, dict):
+                field = '.'.join(traversed[:-1])
+                return build_failure(
+                    "invalid_field_type",
+                    "validation",
+                    f"Webhook field must be an object: {field}",
+                )
+            if key not in current:
+                return build_failure(
+                    "missing_required_field",
+                    "validation",
+                    f"Missing required webhook field: {'.'.join(path)}",
+                )
+            current = current[key]
+
+    quantity = data['strategy']['order_contracts']
+    try:
+        float(quantity)
+    except (TypeError, ValueError):
+        return build_failure(
+            "invalid_field_type",
+            "validation",
+            "Webhook field must be numeric: strategy.order_contracts",
+        )
+
+    return None
 
 # Decorator to restrict access to whitelisted IPs only
 def whitelist_ip(func):
@@ -70,10 +139,10 @@ def get_trades_collection():
         trades_collection = get_mongo_client().trading.trades
     return trades_collection
 
-def record_trade(data, order_response):
+def record_trade(data, order_response, failure=None):
     """Records trade to MongoDB with strategy information."""
     try:
-        get_trades_collection().insert_one({
+        trade = {
             "time": data["bar"]["time"],
             "strategy_name": data["strategyName"],
             "symbol": data["ticker"],
@@ -91,9 +160,21 @@ def record_trade(data, order_response):
             "strategy_market_position_size": data["strategy"]["market_position_size"],
             "prev_market_position": data["strategy"]["prev_market_position"],
             "prev_market_position_size": data["strategy"]["prev_market_position_size"]
-        })
+        }
+        if failure is not None:
+            trade["failure"] = failure
+        get_trades_collection().insert_one(trade)
+        return True
     except Exception as e:
-        print(f"Failed Order: An exception occurred: {e}")
+        log_failure(
+            build_failure(
+                "persistence_failed",
+                "persistence",
+                "Failed to persist trade record",
+            ),
+            e,
+        )
+        return False
 
 def execute_order(data):
     """Executes a real Bybit/Binance order or simulates it for paper trading."""
@@ -122,8 +203,13 @@ def execute_order(data):
                 order_response = place_order_binance(ticker, quantity, data)
                 record_trade(data, order_response)
             except Exception as e:
-                record_trade(data, "Failed Real Order?")
-                print(f"Failed Order(Binance): {e}")
+                failure = build_failure(
+                    "exchange_submission_failed",
+                    "exchange_submission",
+                    "Exchange order submission failed",
+                )
+                record_trade(data, "Failed Real Order?", failure)
+                log_failure(failure, e)
                 return False
 
         elif exchange == "BYBIT":
@@ -131,19 +217,35 @@ def execute_order(data):
                 order_response = place_order_bybit(ticker, quantity, data)
                 record_trade(data, order_response)
             except Exception as e:
-                record_trade(data, "Failed Real Order?")
-                print(f"Failed Order(Bybit): {e}")
+                failure = build_failure(
+                    "exchange_submission_failed",
+                    "exchange_submission",
+                    "Exchange order submission failed",
+                )
+                record_trade(data, "Failed Real Order?", failure)
+                log_failure(failure, e)
                 return False
         elif exchange == "HYPERLIQUID":
             try:
                 order_response = place_order_hyperliquid(ticker, quantity, data)
                 record_trade(data, order_response)
             except Exception as e:
-                record_trade(data, "Failed Real Order?")
-                print(f"Failed Order(Hyperliquid): {e}")
+                failure = build_failure(
+                    "exchange_submission_failed",
+                    "exchange_submission",
+                    "Exchange order submission failed",
+                )
+                record_trade(data, "Failed Real Order?", failure)
+                log_failure(failure, e)
                 return False
         else:
-            print("Execution Error: No exchange value matching Binance, Bybit, or Hyperliquid")
+            log_failure(
+                build_failure(
+                    "unsupported_exchange",
+                    "routing",
+                    "No exchange value matching Binance, Bybit, or Hyperliquid",
+                )
+            )
             return False
     else:
         side = data['strategy']['order_action'].upper()
@@ -193,6 +295,11 @@ def webhook():
 
     data = dict(data)
     data.pop('passphrase', None)
+
+    failure = validate_webhook_payload(data)
+    if failure is not None:
+        log_failure(failure)
+        return jsonify({"status": "error", "reason": "invalid payload", "failure": failure}), 400
 
     success = execute_order(data)
 

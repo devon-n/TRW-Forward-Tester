@@ -97,6 +97,48 @@ def test_webhook_wrong_passphrase(mock_execute_order, client):
     assert response.status_code == 401
     assert response.json == {"status": "error", "message": "Invalid Passphrase"}
 
+
+@patch.dict(os.environ, {'WHITELISTED_IPS': '127.0.0.1', 'WEBHOOK_SECRET': 'test-secret'})
+@patch('app.execute_order')
+def test_webhook_missing_required_json_field_returns_structured_validation_failure(mock_execute_order, client):
+    data = build_webhook_payload()
+    del data['strategy']['order_contracts']
+
+    response = client.post('/webhook', json=data, headers={'X-Forwarded-For': '127.0.0.1'})
+
+    mock_execute_order.assert_not_called()
+    assert response.status_code == 400
+    assert response.json == {
+        "status": "error",
+        "reason": "invalid payload",
+        "failure": {
+            "code": "missing_required_field",
+            "stage": "validation",
+            "message": "Missing required webhook field: strategy.order_contracts",
+        },
+    }
+
+
+@patch.dict(os.environ, {'WHITELISTED_IPS': '127.0.0.1', 'WEBHOOK_SECRET': 'test-secret'})
+@patch('app.execute_order')
+def test_webhook_malformed_strategy_returns_structured_validation_failure(mock_execute_order, client):
+    data = build_webhook_payload()
+    data['strategy'] = 'not-an-object'
+
+    response = client.post('/webhook', json=data, headers={'X-Forwarded-For': '127.0.0.1'})
+
+    mock_execute_order.assert_not_called()
+    assert response.status_code == 400
+    assert response.json == {
+        "status": "error",
+        "reason": "invalid payload",
+        "failure": {
+            "code": "invalid_field_type",
+            "stage": "validation",
+            "message": "Webhook field must be an object: strategy",
+        },
+    }
+
 @patch('exchanges.binance.UMFutures')
 @patch('app.record_trade')
 def test_execute_order_real(mock_record_trade, mock_um_futures):
@@ -207,6 +249,54 @@ def test_execute_order_defaults_missing_order_type(mock_record_trade):
     assert 'passphrase' not in data
     mock_record_trade.assert_called_once_with(data, None)
 
+
+@patch('app.log_failure')
+def test_execute_order_unsupported_real_exchange_returns_false_with_structured_failure(mock_log_failure):
+    from app import execute_order
+
+    data = build_webhook_payload()
+    data.pop('passphrase')
+    data['order_type'] = 'REAL'
+    data['exchange'] = 'UNKNOWN'
+
+    result = execute_order(data)
+
+    assert result is False
+    mock_log_failure.assert_called_once_with({
+        "code": "unsupported_exchange",
+        "stage": "routing",
+        "message": "No exchange value matching Binance, Bybit, or Hyperliquid",
+    })
+
+
+@patch('app.place_order_binance', side_effect=RuntimeError('secret-bearing adapter error'))
+@patch('app.record_trade')
+@patch('app.log_failure')
+def test_execute_order_real_adapter_exception_records_legacy_and_structured_failure(
+    mock_log_failure,
+    mock_record_trade,
+    mock_place_order_binance,
+):
+    from app import execute_order
+
+    data = build_webhook_payload()
+    data.pop('passphrase')
+    data['order_type'] = 'REAL'
+    data['exchange'] = 'BINANCE'
+
+    result = execute_order(data)
+
+    assert result is False
+    mock_place_order_binance.assert_called_once()
+    failure = {
+        "code": "exchange_submission_failed",
+        "stage": "exchange_submission",
+        "message": "Exchange order submission failed",
+    }
+    mock_record_trade.assert_called_once_with(data, "Failed Real Order?", failure)
+    mock_log_failure.assert_called_once()
+    assert mock_log_failure.call_args[0][0] == failure
+
 @patch('app.trades_collection')
 def test_record_trade(mock_trades_collection):
     from app import record_trade
@@ -240,6 +330,48 @@ def test_record_trade(mock_trades_collection):
     assert call_args['leverage'] == 10
     assert call_args['order_type'] == 'PAPER'
     assert call_args['order_response'] == order_response
+
+
+@patch('app.trades_collection')
+def test_record_trade_adds_structured_failure_metadata(mock_trades_collection):
+    from app import record_trade
+
+    data = build_webhook_payload()
+    data.pop('passphrase')
+    failure = {
+        "code": "exchange_submission_failed",
+        "stage": "exchange_submission",
+        "message": "Exchange order submission failed",
+    }
+
+    result = record_trade(data, "Failed Real Order?", failure)
+
+    assert result is True
+    call_args = mock_trades_collection.insert_one.call_args[0][0]
+    assert call_args['order_response'] == "Failed Real Order?"
+    assert call_args['failure'] == failure
+
+
+@patch('app.log_failure')
+@patch('app.trades_collection')
+def test_record_trade_mongo_insert_failure_logs_structured_failure(mock_trades_collection, mock_log_failure):
+    from app import record_trade
+
+    data = build_webhook_payload()
+    data.pop('passphrase')
+    mock_trades_collection.insert_one.side_effect = RuntimeError('mongo password leaked here')
+
+    result = record_trade(data, None)
+
+    assert result is False
+    failure = {
+        "code": "persistence_failed",
+        "stage": "persistence",
+        "message": "Failed to persist trade record",
+    }
+    mock_log_failure.assert_called_once()
+    assert mock_log_failure.call_args[0][0] == failure
+    assert isinstance(mock_log_failure.call_args[0][1], RuntimeError)
 
 @patch.dict(os.environ, {'WHITELISTED_IPS': '127.0.0.1', 'WEBHOOK_SECRET': 'test-secret'})
 @patch('app.execute_order')
