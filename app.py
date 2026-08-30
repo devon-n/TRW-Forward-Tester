@@ -1,5 +1,4 @@
 import hmac
-import json
 import os
 from functools import lru_cache
 
@@ -21,6 +20,13 @@ from config import (
 from exchanges.binance import place_order_binance
 from exchanges.bybit import place_order_bybit
 from exchanges.hyperliquid import place_order_hyperliquid
+from errors import (
+    ExchangeSubmissionError,
+    InvalidFieldTypeError,
+    MissingRequiredFieldError,
+    PersistenceError,
+    UnsupportedExchangeError,
+)
 from logging_utils import sanitize_dict
 
 load_dotenv()
@@ -58,21 +64,6 @@ def get_webhook_secret():
     return os.environ.get('WEBHOOK_SECRET', '').strip()
 
 
-def build_failure(code, stage, message):
-    return {
-        "code": code,
-        "stage": stage,
-        "message": message,
-    }
-
-
-def log_failure(failure, error=None):
-    event = {"failure": failure}
-    if error is not None:
-        event["exception_type"] = type(error).__name__
-    print(f"Structured failure: {json.dumps(sanitize_dict(event), sort_keys=True)}")
-
-
 def validate_webhook_payload(data):
     """Validate fields already required by execution and persistence paths."""
     for path in REQUIRED_WEBHOOK_FIELDS:
@@ -82,28 +73,16 @@ def validate_webhook_payload(data):
             traversed.append(key)
             if not isinstance(current, dict):
                 field = '.'.join(traversed[:-1])
-                return build_failure(
-                    "invalid_field_type",
-                    "validation",
-                    f"Webhook field must be an object: {field}",
-                )
+                return InvalidFieldTypeError(field, "an object")
             if key not in current:
-                return build_failure(
-                    "missing_required_field",
-                    "validation",
-                    f"Missing required webhook field: {'.'.join(path)}",
-                )
+                return MissingRequiredFieldError('.'.join(path))
             current = current[key]
 
     quantity = data['strategy']['order_contracts']
     try:
         float(quantity)
     except (TypeError, ValueError):
-        return build_failure(
-            "invalid_field_type",
-            "validation",
-            "Webhook field must be numeric: strategy.order_contracts",
-        )
+        return InvalidFieldTypeError("strategy.order_contracts", "numeric")
 
     return None
 
@@ -162,18 +141,11 @@ def record_trade(data, order_response, failure=None):
             "prev_market_position_size": data["strategy"]["prev_market_position_size"]
         }
         if failure is not None:
-            trade["failure"] = failure
+            trade["failure"] = failure.to_dict() if hasattr(failure, "to_dict") else failure
         get_trades_collection().insert_one(trade)
         return True
     except Exception as e:
-        log_failure(
-            build_failure(
-                "persistence_failed",
-                "persistence",
-                "Failed to persist trade record",
-            ),
-            e,
-        )
+        PersistenceError().log(e)
         return False
 
 def execute_order(data):
@@ -203,13 +175,9 @@ def execute_order(data):
                 order_response = place_order_binance(ticker, quantity, data)
                 record_trade(data, order_response)
             except Exception as e:
-                failure = build_failure(
-                    "exchange_submission_failed",
-                    "exchange_submission",
-                    "Exchange order submission failed",
-                )
-                record_trade(data, "Failed Real Order?", failure)
-                log_failure(failure, e)
+                failure = ExchangeSubmissionError()
+                record_trade(data, "Failed Real Order?", failure.to_dict())
+                failure.log(e)
                 return False
 
         elif exchange == "BYBIT":
@@ -217,35 +185,21 @@ def execute_order(data):
                 order_response = place_order_bybit(ticker, quantity, data)
                 record_trade(data, order_response)
             except Exception as e:
-                failure = build_failure(
-                    "exchange_submission_failed",
-                    "exchange_submission",
-                    "Exchange order submission failed",
-                )
-                record_trade(data, "Failed Real Order?", failure)
-                log_failure(failure, e)
+                failure = ExchangeSubmissionError()
+                record_trade(data, "Failed Real Order?", failure.to_dict())
+                failure.log(e)
                 return False
         elif exchange == "HYPERLIQUID":
             try:
                 order_response = place_order_hyperliquid(ticker, quantity, data)
                 record_trade(data, order_response)
             except Exception as e:
-                failure = build_failure(
-                    "exchange_submission_failed",
-                    "exchange_submission",
-                    "Exchange order submission failed",
-                )
-                record_trade(data, "Failed Real Order?", failure)
-                log_failure(failure, e)
+                failure = ExchangeSubmissionError()
+                record_trade(data, "Failed Real Order?", failure.to_dict())
+                failure.log(e)
                 return False
         else:
-            log_failure(
-                build_failure(
-                    "unsupported_exchange",
-                    "routing",
-                    "No exchange value matching Binance, Bybit, or Hyperliquid",
-                )
-            )
+            UnsupportedExchangeError().log()
             return False
     else:
         side = data['strategy']['order_action'].upper()
@@ -298,8 +252,8 @@ def webhook():
 
     failure = validate_webhook_payload(data)
     if failure is not None:
-        log_failure(failure)
-        return jsonify({"status": "error", "reason": "invalid payload", "failure": failure}), 400
+        failure.log()
+        return jsonify({"status": "error", "reason": "invalid payload", "failure": failure.to_dict()}), 400
 
     success = execute_order(data)
 

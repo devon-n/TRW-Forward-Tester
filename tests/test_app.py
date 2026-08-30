@@ -7,6 +7,7 @@ from unittest.mock import (
 import pytest
 
 from logging_utils import sanitize_dict
+from errors import TRWError
 
 
 def build_webhook_payload(passphrase='test-secret'):
@@ -250,8 +251,8 @@ def test_execute_order_defaults_missing_order_type(mock_record_trade):
     mock_record_trade.assert_called_once_with(data, None)
 
 
-@patch('app.log_failure')
-def test_execute_order_unsupported_real_exchange_returns_false_with_structured_failure(mock_log_failure):
+@patch.object(TRWError, 'log', autospec=True)
+def test_execute_order_unsupported_real_exchange_returns_false_with_structured_failure(mock_log):
     from app import execute_order
 
     data = build_webhook_payload()
@@ -262,18 +263,19 @@ def test_execute_order_unsupported_real_exchange_returns_false_with_structured_f
     result = execute_order(data)
 
     assert result is False
-    mock_log_failure.assert_called_once_with({
+    mock_log.assert_called_once()
+    assert mock_log.call_args[0][0].to_dict() == {
         "code": "unsupported_exchange",
         "stage": "routing",
         "message": "No exchange value matching Binance, Bybit, or Hyperliquid",
-    })
+    }
 
 
 @patch('app.place_order_binance', side_effect=RuntimeError('secret-bearing adapter error'))
 @patch('app.record_trade')
-@patch('app.log_failure')
+@patch.object(TRWError, 'log', autospec=True)
 def test_execute_order_real_adapter_exception_records_legacy_and_structured_failure(
-    mock_log_failure,
+    mock_log,
     mock_record_trade,
     mock_place_order_binance,
 ):
@@ -294,8 +296,9 @@ def test_execute_order_real_adapter_exception_records_legacy_and_structured_fail
         "message": "Exchange order submission failed",
     }
     mock_record_trade.assert_called_once_with(data, "Failed Real Order?", failure)
-    mock_log_failure.assert_called_once()
-    assert mock_log_failure.call_args[0][0] == failure
+    mock_log.assert_called_once()
+    assert mock_log.call_args[0][0].to_dict() == failure
+    assert isinstance(mock_log.call_args[0][1], RuntimeError)
 
 @patch('app.trades_collection')
 def test_record_trade(mock_trades_collection):
@@ -352,9 +355,9 @@ def test_record_trade_adds_structured_failure_metadata(mock_trades_collection):
     assert call_args['failure'] == failure
 
 
-@patch('app.log_failure')
+@patch.object(TRWError, 'log', autospec=True)
 @patch('app.trades_collection')
-def test_record_trade_mongo_insert_failure_logs_structured_failure(mock_trades_collection, mock_log_failure):
+def test_record_trade_mongo_insert_failure_logs_structured_failure(mock_trades_collection, mock_log):
     from app import record_trade
 
     data = build_webhook_payload()
@@ -369,9 +372,9 @@ def test_record_trade_mongo_insert_failure_logs_structured_failure(mock_trades_c
         "stage": "persistence",
         "message": "Failed to persist trade record",
     }
-    mock_log_failure.assert_called_once()
-    assert mock_log_failure.call_args[0][0] == failure
-    assert isinstance(mock_log_failure.call_args[0][1], RuntimeError)
+    mock_log.assert_called_once()
+    assert mock_log.call_args[0][0].to_dict() == failure
+    assert isinstance(mock_log.call_args[0][1], RuntimeError)
 
 @patch.dict(os.environ, {'WHITELISTED_IPS': '127.0.0.1', 'WEBHOOK_SECRET': 'test-secret'})
 @patch('app.execute_order')
