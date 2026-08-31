@@ -140,6 +140,262 @@ def test_webhook_malformed_strategy_returns_structured_validation_failure(mock_e
         },
     }
 
+
+@pytest.mark.parametrize(
+    "quantity",
+    ['0', '-0.001', float('nan'), float('inf'), float('-inf')],
+)
+@patch.dict(os.environ, {'WHITELISTED_IPS': '127.0.0.1', 'WEBHOOK_SECRET': 'test-secret'})
+@patch('app.execute_order')
+def test_webhook_rejects_invalid_quantities(mock_execute_order, client, quantity):
+    data = build_webhook_payload()
+    data['strategy']['order_contracts'] = quantity
+
+    response = client.post('/webhook', json=data, headers={'X-Forwarded-For': '127.0.0.1'})
+
+    mock_execute_order.assert_not_called()
+    assert response.status_code == 400
+    assert response.json["status"] == "error"
+    assert response.json["reason"] == "invalid payload"
+    assert response.json["failure"]["code"] == "invalid_field_value"
+    assert "strategy.order_contracts" in response.json["failure"]["message"]
+
+
+@patch.object(TRWError, 'log', autospec=True)
+@patch('app.record_trade')
+def test_execute_order_rejects_quantity_that_rounds_to_zero(mock_record_trade, mock_log):
+    from app import execute_order
+
+    data = build_webhook_payload()
+    data.pop('passphrase')
+    data['ticker'] = 'KAVAUSDT'
+    data['strategy']['order_contracts'] = '0.04'
+
+    result = execute_order(data)
+
+    assert result is False
+    mock_record_trade.assert_not_called()
+    mock_log.assert_called_once()
+    assert mock_log.call_args[0][0].to_dict()["code"] == "invalid_field_value"
+
+
+@patch.dict(os.environ, {'WHITELISTED_IPS': '127.0.0.1', 'WEBHOOK_SECRET': 'test-secret'})
+@patch('app.execute_order')
+def test_webhook_rejects_unsupported_order_type(mock_execute_order, client):
+    data = build_webhook_payload()
+    data['order_type'] = 'PAPERX'
+
+    response = client.post('/webhook', json=data, headers={'X-Forwarded-For': '127.0.0.1'})
+
+    mock_execute_order.assert_not_called()
+    assert response.status_code == 400
+    assert response.json["failure"] == {
+        "code": "invalid_field_value",
+        "stage": "validation",
+        "message": "Webhook field has unsupported value; expected PAPER or REAL: order_type",
+    }
+
+
+@patch('app.record_trade')
+def test_execute_order_accepts_oddly_cased_valid_order_type(mock_record_trade):
+    from app import execute_order
+
+    data = build_webhook_payload()
+    data.pop('passphrase')
+    data['order_type'] = 'pApEr'
+
+    result = execute_order(data)
+
+    assert result is True
+    assert data['order_type'] == 'PAPER'
+    mock_record_trade.assert_called_once_with(data, None)
+
+
+@patch.dict(os.environ, {'WHITELISTED_IPS': '127.0.0.1', 'WEBHOOK_SECRET': 'test-secret'})
+@patch('app.execute_order')
+def test_webhook_accepts_paper_without_exchange(mock_execute_order, client):
+    data = build_webhook_payload()
+
+    response = client.post('/webhook', json=data, headers={'X-Forwarded-For': '127.0.0.1'})
+
+    assert response.status_code == 200
+    assert response.json == {"code": "success", "message": "Order executed"}
+    expected_data = dict(data)
+    expected_data.pop('passphrase')
+    mock_execute_order.assert_called_once_with(expected_data)
+
+
+@patch.dict(os.environ, {'WHITELISTED_IPS': '127.0.0.1', 'WEBHOOK_SECRET': 'test-secret'})
+@patch('app.execute_order')
+def test_webhook_accepts_paper_with_arbitrary_exchange_metadata(mock_execute_order, client):
+    data = build_webhook_payload()
+    data['exchange'] = 'SOME_METADATA_VALUE'
+
+    response = client.post('/webhook', json=data, headers={'X-Forwarded-For': '127.0.0.1'})
+
+    assert response.status_code == 200
+    assert response.json == {"code": "success", "message": "Order executed"}
+    expected_data = dict(data)
+    expected_data.pop('passphrase')
+    mock_execute_order.assert_called_once_with(expected_data)
+
+
+@patch('app.record_trade')
+def test_execute_order_paper_preserves_mixed_case_exchange_metadata(mock_record_trade):
+    from app import execute_order
+
+    data = build_webhook_payload()
+    data.pop('passphrase')
+    data['exchange'] = 'paper_Metadata_Value'
+
+    result = execute_order(data)
+
+    assert result is True
+    assert data['exchange'] == 'paper_Metadata_Value'
+    mock_record_trade.assert_called_once_with(data, None)
+
+
+@patch('app.place_order_binance', return_value={'orderId': '123456', 'status': 'FILLED'})
+@patch('app.record_trade')
+def test_execute_order_real_accepts_mixed_case_supported_exchange_and_routes(
+    mock_record_trade,
+    mock_place_order_binance,
+):
+    from app import execute_order
+
+    data = build_webhook_payload()
+    data.pop('passphrase')
+    data['order_type'] = 'REAL'
+    data['exchange'] = 'bInAnCe'
+
+    result = execute_order(data)
+
+    assert result is True
+    assert data['exchange'] == 'BINANCE'
+    mock_place_order_binance.assert_called_once_with('BTCUSDT', '0.002', data)
+    mock_record_trade.assert_called_once_with(data, {'orderId': '123456', 'status': 'FILLED'})
+
+
+@patch('app.record_trade')
+def test_execute_order_raises_positive_quantity_below_minimum_to_configured_minimum(mock_record_trade):
+    from app import execute_order
+
+    data = build_webhook_payload()
+    data.pop('passphrase')
+    data['strategy']['order_contracts'] = '0.001'
+
+    result = execute_order(data)
+
+    assert result is True
+    assert data['strategy']['order_contracts'] == '0.002'
+    mock_record_trade.assert_called_once_with(data, None)
+
+
+@patch('app.record_trade')
+def test_execute_order_accepts_scientific_notation_quantity(mock_record_trade):
+    from app import execute_order
+
+    data = build_webhook_payload()
+    data.pop('passphrase')
+    data['ticker'] = 'ETHUSDT'
+    data['strategy']['order_contracts'] = '1e-3'
+
+    result = execute_order(data)
+
+    assert result is True
+    assert data['strategy']['order_contracts'] == '1e-3'
+    mock_record_trade.assert_called_once_with(data, None)
+
+
+@patch.dict(os.environ, {'WHITELISTED_IPS': '127.0.0.1', 'WEBHOOK_SECRET': 'test-secret'})
+@patch('app.execute_order')
+def test_webhook_rejects_unsupported_exchange(mock_execute_order, client):
+    data = build_webhook_payload()
+    data['order_type'] = 'REAL'
+    data['exchange'] = 'UNKNOWN'
+
+    response = client.post('/webhook', json=data, headers={'X-Forwarded-For': '127.0.0.1'})
+
+    mock_execute_order.assert_not_called()
+    assert response.status_code == 400
+    assert response.json["failure"] == {
+        "code": "unsupported_exchange",
+        "stage": "routing",
+        "message": "No exchange value matching Binance, Bybit, or Hyperliquid",
+    }
+
+
+@patch.dict(os.environ, {'WHITELISTED_IPS': '127.0.0.1', 'WEBHOOK_SECRET': 'test-secret'})
+@patch('app.execute_order')
+def test_webhook_rejects_invalid_order_action(mock_execute_order, client):
+    data = build_webhook_payload()
+    data['strategy']['order_action'] = 'hold'
+
+    response = client.post('/webhook', json=data, headers={'X-Forwarded-For': '127.0.0.1'})
+
+    mock_execute_order.assert_not_called()
+    assert response.status_code == 400
+    assert response.json["failure"] == {
+        "code": "invalid_field_value",
+        "stage": "validation",
+        "message": "Webhook field has unsupported value; expected BUY or SELL: strategy.order_action",
+    }
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        ('bar', 'close'),
+        ('strategy', 'order_price'),
+        ('strategy', 'position_size'),
+        ('strategy', 'market_position_size'),
+        ('strategy', 'prev_market_position_size'),
+        ('leverage',),
+    ],
+)
+@patch.dict(os.environ, {'WHITELISTED_IPS': '127.0.0.1', 'WEBHOOK_SECRET': 'test-secret'})
+@patch('app.execute_order')
+def test_webhook_rejects_malformed_numeric_fields(mock_execute_order, client, path):
+    data = build_webhook_payload()
+    target = data
+    for key in path[:-1]:
+        target = target[key]
+    target[path[-1]] = 'not-a-number'
+
+    response = client.post('/webhook', json=data, headers={'X-Forwarded-For': '127.0.0.1'})
+
+    mock_execute_order.assert_not_called()
+    assert response.status_code == 400
+    assert response.json["failure"]["code"] == "invalid_field_type"
+    assert ".".join(path) in response.json["failure"]["message"]
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        ('bar', 'close'),
+        ('strategy', 'order_price'),
+        ('strategy', 'position_size'),
+        ('strategy', 'market_position_size'),
+        ('strategy', 'prev_market_position_size'),
+        ('leverage',),
+    ],
+)
+def test_validate_webhook_payload_rejects_non_finite_numeric_fields(path):
+    from app import validate_webhook_payload
+
+    data = build_webhook_payload()
+    target = data
+    for key in path[:-1]:
+        target = target[key]
+    target[path[-1]] = float('inf')
+
+    failure = validate_webhook_payload(data)
+
+    assert failure.to_dict()["code"] == "invalid_field_value"
+    assert ".".join(path) in failure.to_dict()["message"]
+
+
 @patch('exchanges.binance.UMFutures')
 @patch('app.record_trade')
 def test_execute_order_real(mock_record_trade, mock_um_futures):
@@ -206,6 +462,48 @@ def test_execute_order_real_hyperliquid(mock_record_trade, mock_create_exchange)
     mock_exchange.set_margin_mode.assert_called_once_with('isolated', 'BTC/USDC:USDC', {'leverage': 10})
     mock_exchange.create_order.assert_called_once_with('BTC/USDC:USDC', 'market', 'buy', 0.002, 50000.0, {})
     mock_record_trade.assert_called_once()
+
+
+@pytest.mark.parametrize(
+    ('order_action', 'expected_side'),
+    [
+        ('bUy', 'Buy'),
+        ('sElL', 'Sell'),
+    ],
+)
+@patch('exchanges.bybit.HTTP')
+@patch('app.record_trade')
+def test_execute_order_real_bybit_normalizes_mixed_case_order_action(
+    mock_record_trade,
+    mock_http,
+    order_action,
+    expected_side,
+):
+    from app import execute_order
+
+    mock_session = MagicMock()
+    mock_http.return_value = mock_session
+    mock_session.place_order.return_value = {'orderId': 'bybit-123', 'status': 'FILLED'}
+
+    data = build_webhook_payload()
+    data.pop('passphrase')
+    data['order_type'] = 'REAL'
+    data['exchange'] = 'BYBIT'
+    data['leverage'] = 0
+    data['strategy']['order_action'] = order_action
+    data['strategy']['order_contracts'] = '0.002'
+
+    result = execute_order(data)
+
+    assert result is True
+    mock_session.place_order.assert_called_once_with(
+        category="linear",
+        symbol='BTCUSDT',
+        side=expected_side,
+        orderType="Market",
+        qty='0.002',
+    )
+    mock_record_trade.assert_called_once_with(data, {'orderId': 'bybit-123', 'status': 'FILLED'})
 
 @patch('app.record_trade')
 def test_execute_order_paper(mock_record_trade):

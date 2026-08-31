@@ -43,6 +43,15 @@ class InvalidFieldTypeError(TRWError):
         super().__init__()
 
 
+class InvalidFieldValueError(TRWError):
+    code = "invalid_field_value"
+    stage = "validation"
+
+    def __init__(self, field, expected_value):
+        self.message = f"Webhook field has unsupported value; expected {expected_value}: {field}"
+        super().__init__()
+
+
 class UnsupportedExchangeError(TRWError):
     code = "unsupported_exchange"
     stage = "routing"

@@ -1,4 +1,5 @@
 import hmac
+import math
 import os
 from functools import lru_cache
 
@@ -23,6 +24,7 @@ from exchanges.hyperliquid import place_order_hyperliquid
 from errors import (
     ExchangeSubmissionError,
     InvalidFieldTypeError,
+    InvalidFieldValueError,
     MissingRequiredFieldError,
     PersistenceError,
     UnsupportedExchangeError,
@@ -53,6 +55,19 @@ REQUIRED_WEBHOOK_FIELDS = (
     ('leverage',),
 )
 
+SUPPORTED_ORDER_TYPES = {"PAPER", "REAL"}
+SUPPORTED_EXCHANGES = {"BINANCE", "BYBIT", "HYPERLIQUID"}
+SUPPORTED_ORDER_ACTIONS = {"BUY", "SELL"}
+FINITE_NUMERIC_WEBHOOK_FIELDS = (
+    (('bar', 'close'), "bar.close"),
+    (('strategy', 'order_contracts'), "strategy.order_contracts"),
+    (('strategy', 'order_price'), "strategy.order_price"),
+    (('strategy', 'position_size'), "strategy.position_size"),
+    (('strategy', 'market_position_size'), "strategy.market_position_size"),
+    (('strategy', 'prev_market_position_size'), "strategy.prev_market_position_size"),
+    (('leverage',), "leverage"),
+)
+
 
 @lru_cache(maxsize=1)
 def get_whitelisted_ips():
@@ -62,6 +77,42 @@ def get_whitelisted_ips():
 
 def get_webhook_secret():
     return os.environ.get('WEBHOOK_SECRET', '').strip()
+
+
+def _parse_finite_number(value, field):
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return None, InvalidFieldTypeError(field, "finite numeric")
+    if not math.isfinite(number):
+        return None, InvalidFieldValueError(field, "a finite numeric value")
+    return number, None
+
+
+def _normalize_order_type(value):
+    return str(value if value is not None else 'PAPER').upper()
+
+
+def _normalize_exchange(value):
+    return str(value or '').upper()
+
+
+def _normalize_order_action(value):
+    return str(value).upper()
+
+
+def _normalize_ticker(ticker):
+    normalized = ticker.replace('.P', '')
+    return normalized + "T" if normalized.endswith("USD") else normalized
+
+
+def _quantity_validation_failure(quantity):
+    number, failure = _parse_finite_number(quantity, "strategy.order_contracts")
+    if failure is not None:
+        return failure
+    if number <= 0:
+        return InvalidFieldValueError("strategy.order_contracts", "a positive finite numeric value")
+    return None
 
 
 def validate_webhook_payload(data):
@@ -78,11 +129,29 @@ def validate_webhook_payload(data):
                 return MissingRequiredFieldError('.'.join(path))
             current = current[key]
 
-    quantity = data['strategy']['order_contracts']
-    try:
-        float(quantity)
-    except (TypeError, ValueError):
-        return InvalidFieldTypeError("strategy.order_contracts", "numeric")
+    for path, field in FINITE_NUMERIC_WEBHOOK_FIELDS:
+        current = data
+        for key in path:
+            current = current[key]
+        _, failure = _parse_finite_number(current, field)
+        if failure is not None:
+            return failure
+
+    failure = _quantity_validation_failure(data['strategy']['order_contracts'])
+    if failure is not None:
+        return failure
+
+    order_type = _normalize_order_type(data.get('order_type'))
+    if order_type not in SUPPORTED_ORDER_TYPES:
+        return InvalidFieldValueError("order_type", "PAPER or REAL")
+
+    order_action = _normalize_order_action(data['strategy']['order_action'])
+    if order_action not in SUPPORTED_ORDER_ACTIONS:
+        return InvalidFieldValueError("strategy.order_action", "BUY or SELL")
+
+    exchange = _normalize_exchange(data.get('exchange'))
+    if order_type == "REAL" and exchange not in SUPPORTED_EXCHANGES:
+        return UnsupportedExchangeError()
 
     return None
 
@@ -153,19 +222,37 @@ def execute_order(data):
     data.pop('passphrase', None)
     quantity = data['strategy']['order_contracts']
     ticker = data['ticker']
-    order_type = str(data.get('order_type', 'PAPER')).upper()
-    exchange = (data.get('exchange') or '').upper()
+    order_type = _normalize_order_type(data.get('order_type'))
+    exchange = _normalize_exchange(data.get('exchange'))
     data['order_type'] = order_type
+    if order_type == "REAL" and exchange:
+        data['exchange'] = exchange
+
+    failure = _quantity_validation_failure(quantity)
+    if failure is not None:
+        failure.log()
+        return False
+    if order_type not in SUPPORTED_ORDER_TYPES:
+        InvalidFieldValueError("order_type", "PAPER or REAL").log()
+        return False
+    side = _normalize_order_action(data['strategy']['order_action'])
+    if side not in SUPPORTED_ORDER_ACTIONS:
+        InvalidFieldValueError("strategy.order_action", "BUY or SELL").log()
+        return False
 
     # Update min qty and precision
-    ticker = ticker.replace('.P', '')
-    ticker = ticker + "T" if ticker.endswith("USD") else ticker
+    ticker = _normalize_ticker(ticker)
     if ticker in minQtyDict:
         if float(quantity) < float(minQtyDict[ticker]):
             quantity = minQtyDict[ticker]
 
     if ticker in precisionDecimalDict:
         quantity = str(round(float(quantity), precisionDecimalDict[ticker]))
+
+    failure = _quantity_validation_failure(quantity)
+    if failure is not None:
+        failure.log()
+        return False
 
     data['strategy']['order_contracts'] = quantity
 
@@ -202,7 +289,6 @@ def execute_order(data):
             UnsupportedExchangeError().log()
             return False
     else:
-        side = data['strategy']['order_action'].upper()
         print(f"Simulated paper order: {order_type} - {side} {quantity} {ticker}")
         record_trade(data, None)
     return True
