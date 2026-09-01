@@ -1,5 +1,4 @@
 import hmac
-import math
 import os
 from functools import lru_cache
 
@@ -23,50 +22,26 @@ from exchanges.bybit import place_order_bybit
 from exchanges.hyperliquid import place_order_hyperliquid
 from errors import (
     ExchangeSubmissionError,
-    InvalidFieldTypeError,
-    InvalidFieldValueError,
-    MissingRequiredFieldError,
+    InvalidOrderActionError,
+    InvalidOrderTypeError,
+    InvalidPositiveQuantityError,
     PersistenceError,
+    TRWError,
     UnsupportedExchangeError,
 )
 from logging_utils import sanitize_dict
+from webhook import (
+    Exchange,
+    OrderAction,
+    OrderType,
+    WebhookPayload,
+)
 
 load_dotenv()
 
 app = Flask(__name__)
 mongo_client = None
 trades_collection = None
-
-
-REQUIRED_WEBHOOK_FIELDS = (
-    ('strategyName',),
-    ('ticker',),
-    ('bar', 'time'),
-    ('bar', 'close'),
-    ('strategy', 'order_action'),
-    ('strategy', 'order_contracts'),
-    ('strategy', 'order_price'),
-    ('strategy', 'position_size'),
-    ('strategy', 'order_id'),
-    ('strategy', 'market_position'),
-    ('strategy', 'market_position_size'),
-    ('strategy', 'prev_market_position'),
-    ('strategy', 'prev_market_position_size'),
-    ('leverage',),
-)
-
-SUPPORTED_ORDER_TYPES = {"PAPER", "REAL"}
-SUPPORTED_EXCHANGES = {"BINANCE", "BYBIT", "HYPERLIQUID"}
-SUPPORTED_ORDER_ACTIONS = {"BUY", "SELL"}
-FINITE_NUMERIC_WEBHOOK_FIELDS = (
-    (('bar', 'close'), "bar.close"),
-    (('strategy', 'order_contracts'), "strategy.order_contracts"),
-    (('strategy', 'order_price'), "strategy.order_price"),
-    (('strategy', 'position_size'), "strategy.position_size"),
-    (('strategy', 'market_position_size'), "strategy.market_position_size"),
-    (('strategy', 'prev_market_position_size'), "strategy.prev_market_position_size"),
-    (('leverage',), "leverage"),
-)
 
 
 @lru_cache(maxsize=1)
@@ -79,26 +54,22 @@ def get_webhook_secret():
     return os.environ.get('WEBHOOK_SECRET', '').strip()
 
 
-def _parse_finite_number(value, field):
-    try:
-        number = float(value)
-    except (TypeError, ValueError):
-        return None, InvalidFieldTypeError(field, "finite numeric")
-    if not math.isfinite(number):
-        return None, InvalidFieldValueError(field, "a finite numeric value")
-    return number, None
-
-
 def _normalize_order_type(value):
-    return str(value if value is not None else 'PAPER').upper()
+    try:
+        return WebhookPayload._parse_order_type(value).value
+    except InvalidOrderTypeError:
+        return str(value if value is not None else OrderType.PAPER.value).upper()
 
 
 def _normalize_exchange(value):
-    return str(value or '').upper()
+    return str(value or "").upper()
 
 
 def _normalize_order_action(value):
-    return str(value).upper()
+    try:
+        return WebhookPayload._parse_order_action(value).value
+    except InvalidOrderActionError:
+        return str(value).upper()
 
 
 def _normalize_ticker(ticker):
@@ -107,52 +78,21 @@ def _normalize_ticker(ticker):
 
 
 def _quantity_validation_failure(quantity):
-    number, failure = _parse_finite_number(quantity, "strategy.order_contracts")
-    if failure is not None:
+    try:
+        number = WebhookPayload.parse_finite_number(quantity, "strategy.order_contracts")
+    except TRWError as failure:
         return failure
     if number <= 0:
-        return InvalidFieldValueError("strategy.order_contracts", "a positive finite numeric value")
+        return InvalidPositiveQuantityError()
     return None
 
 
 def validate_webhook_payload(data):
     """Validate fields already required by execution and persistence paths."""
-    for path in REQUIRED_WEBHOOK_FIELDS:
-        current = data
-        traversed = []
-        for key in path:
-            traversed.append(key)
-            if not isinstance(current, dict):
-                field = '.'.join(traversed[:-1])
-                return InvalidFieldTypeError(field, "an object")
-            if key not in current:
-                return MissingRequiredFieldError('.'.join(path))
-            current = current[key]
-
-    for path, field in FINITE_NUMERIC_WEBHOOK_FIELDS:
-        current = data
-        for key in path:
-            current = current[key]
-        _, failure = _parse_finite_number(current, field)
-        if failure is not None:
-            return failure
-
-    failure = _quantity_validation_failure(data['strategy']['order_contracts'])
-    if failure is not None:
+    try:
+        WebhookPayload.from_dict(data)
+    except TRWError as failure:
         return failure
-
-    order_type = _normalize_order_type(data.get('order_type'))
-    if order_type not in SUPPORTED_ORDER_TYPES:
-        return InvalidFieldValueError("order_type", "PAPER or REAL")
-
-    order_action = _normalize_order_action(data['strategy']['order_action'])
-    if order_action not in SUPPORTED_ORDER_ACTIONS:
-        return InvalidFieldValueError("strategy.order_action", "BUY or SELL")
-
-    exchange = _normalize_exchange(data.get('exchange'))
-    if order_type == "REAL" and exchange not in SUPPORTED_EXCHANGES:
-        return UnsupportedExchangeError()
-
     return None
 
 # Decorator to restrict access to whitelisted IPs only
@@ -225,19 +165,23 @@ def execute_order(data):
     order_type = _normalize_order_type(data.get('order_type'))
     exchange = _normalize_exchange(data.get('exchange'))
     data['order_type'] = order_type
-    if order_type == "REAL" and exchange:
+    if order_type == OrderType.REAL and exchange:
         data['exchange'] = exchange
 
     failure = _quantity_validation_failure(quantity)
     if failure is not None:
         failure.log()
         return False
-    if order_type not in SUPPORTED_ORDER_TYPES:
-        InvalidFieldValueError("order_type", "PAPER or REAL").log()
+    try:
+        order_type = OrderType(order_type)
+    except ValueError:
+        InvalidOrderTypeError().log()
         return False
     side = _normalize_order_action(data['strategy']['order_action'])
-    if side not in SUPPORTED_ORDER_ACTIONS:
-        InvalidFieldValueError("strategy.order_action", "BUY or SELL").log()
+    try:
+        side = OrderAction(side)
+    except ValueError:
+        InvalidOrderActionError().log()
         return False
 
     # Update min qty and precision
@@ -256,8 +200,14 @@ def execute_order(data):
 
     data['strategy']['order_contracts'] = quantity
 
-    if order_type == "REAL":
-        if exchange == "BINANCE":
+    if order_type == OrderType.REAL:
+        try:
+            exchange = Exchange(exchange)
+        except ValueError:
+            UnsupportedExchangeError().log()
+            return False
+
+        if exchange == Exchange.BINANCE:
             try:
                 order_response = place_order_binance(ticker, quantity, data)
                 record_trade(data, order_response)
@@ -267,7 +217,7 @@ def execute_order(data):
                 failure.log(e)
                 return False
 
-        elif exchange == "BYBIT":
+        elif exchange == Exchange.BYBIT:
             try:
                 order_response = place_order_bybit(ticker, quantity, data)
                 record_trade(data, order_response)
@@ -276,7 +226,7 @@ def execute_order(data):
                 record_trade(data, "Failed Real Order?", failure.to_dict())
                 failure.log(e)
                 return False
-        elif exchange == "HYPERLIQUID":
+        elif exchange == Exchange.HYPERLIQUID:
             try:
                 order_response = place_order_hyperliquid(ticker, quantity, data)
                 record_trade(data, order_response)
@@ -336,12 +286,13 @@ def webhook():
     data = dict(data)
     data.pop('passphrase', None)
 
-    failure = validate_webhook_payload(data)
-    if failure is not None:
+    try:
+        payload = WebhookPayload.from_dict(data)
+    except TRWError as failure:
         failure.log()
         return jsonify({"status": "error", "reason": "invalid payload", "failure": failure.to_dict()}), 400
 
-    success = execute_order(data)
+    success = execute_order(payload.to_execution_dict())
 
     if success:
         return jsonify({"code": "success", "message": "Order executed"}), 200

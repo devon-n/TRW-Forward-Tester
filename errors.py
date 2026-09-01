@@ -52,6 +52,31 @@ class InvalidFieldValueError(TRWError):
         super().__init__()
 
 
+class InvalidFiniteNumericTypeError(InvalidFieldTypeError):
+    def __init__(self, field):
+        super().__init__(field, "finite numeric")
+
+
+class InvalidFiniteNumericValueError(InvalidFieldValueError):
+    def __init__(self, field):
+        super().__init__(field, "a finite numeric value")
+
+
+class InvalidPositiveQuantityError(InvalidFieldValueError):
+    def __init__(self, field="strategy.order_contracts"):
+        super().__init__(field, "a positive finite numeric value")
+
+
+class InvalidOrderTypeError(InvalidFieldValueError):
+    def __init__(self):
+        super().__init__("order_type", "PAPER or REAL")
+
+
+class InvalidOrderActionError(InvalidFieldValueError):
+    def __init__(self):
+        super().__init__("strategy.order_action", "BUY or SELL")
+
+
 class UnsupportedExchangeError(TRWError):
     code = "unsupported_exchange"
     stage = "routing"
