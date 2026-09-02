@@ -22,20 +22,16 @@ from exchanges.bybit import place_order_bybit
 from exchanges.hyperliquid import place_order_hyperliquid
 from errors import (
     ExchangeSubmissionError,
-    InvalidOrderActionError,
-    InvalidOrderTypeError,
     InvalidPositiveQuantityError,
     PersistenceError,
     TRWError,
-    UnsupportedExchangeError,
 )
 from logging_utils import sanitize_dict
-from webhook import (
+from trw.types.enums import (
     Exchange,
-    OrderAction,
     OrderType,
-    WebhookPayload,
 )
+from trw.types.webhook import WebhookPayload
 
 load_dotenv()
 
@@ -54,24 +50,6 @@ def get_webhook_secret():
     return os.environ.get('WEBHOOK_SECRET', '').strip()
 
 
-def _normalize_order_type(value):
-    try:
-        return WebhookPayload._parse_order_type(value).value
-    except InvalidOrderTypeError:
-        return str(value if value is not None else OrderType.PAPER.value).upper()
-
-
-def _normalize_exchange(value):
-    return str(value or "").upper()
-
-
-def _normalize_order_action(value):
-    try:
-        return WebhookPayload._parse_order_action(value).value
-    except InvalidOrderActionError:
-        return str(value).upper()
-
-
 def _normalize_ticker(ticker):
     normalized = ticker.replace('.P', '')
     return normalized + "T" if normalized.endswith("USD") else normalized
@@ -86,14 +64,6 @@ def _quantity_validation_failure(quantity):
         return InvalidPositiveQuantityError()
     return None
 
-
-def validate_webhook_payload(data):
-    """Validate fields already required by execution and persistence paths."""
-    try:
-        WebhookPayload.from_dict(data)
-    except TRWError as failure:
-        return failure
-    return None
 
 # Decorator to restrict access to whitelisted IPs only
 def whitelist_ip(func):
@@ -159,30 +129,25 @@ def record_trade(data, order_response, failure=None):
 
 def execute_order(data):
     """Executes a real Bybit/Binance order or simulates it for paper trading."""
-    data.pop('passphrase', None)
+    try:
+        payload = WebhookPayload.from_dict(data)
+    except TRWError as failure:
+        failure.log()
+        return False
+
+    data.clear()
+    data.update(payload.to_execution_dict())
+
     quantity = data['strategy']['order_contracts']
     ticker = data['ticker']
-    order_type = _normalize_order_type(data.get('order_type'))
-    exchange = _normalize_exchange(data.get('exchange'))
-    data['order_type'] = order_type
-    if order_type == OrderType.REAL and exchange:
-        data['exchange'] = exchange
+    order_type = payload.order_type
+    exchange = payload.exchange
 
     failure = _quantity_validation_failure(quantity)
     if failure is not None:
         failure.log()
         return False
-    try:
-        order_type = OrderType(order_type)
-    except ValueError:
-        InvalidOrderTypeError().log()
-        return False
-    side = _normalize_order_action(data['strategy']['order_action'])
-    try:
-        side = OrderAction(side)
-    except ValueError:
-        InvalidOrderActionError().log()
-        return False
+    side = payload.order_action
 
     # Update min qty and precision
     ticker = _normalize_ticker(ticker)
@@ -201,12 +166,6 @@ def execute_order(data):
     data['strategy']['order_contracts'] = quantity
 
     if order_type == OrderType.REAL:
-        try:
-            exchange = Exchange(exchange)
-        except ValueError:
-            UnsupportedExchangeError().log()
-            return False
-
         if exchange == Exchange.BINANCE:
             try:
                 order_response = place_order_binance(ticker, quantity, data)
@@ -236,7 +195,6 @@ def execute_order(data):
                 failure.log(e)
                 return False
         else:
-            UnsupportedExchangeError().log()
             return False
     else:
         print(f"Simulated paper order: {order_type} - {side} {quantity} {ticker}")

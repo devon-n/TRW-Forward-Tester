@@ -3,6 +3,15 @@ import json
 from logging_utils import sanitize_dict
 
 
+def format_allowed_values(enum_cls, formatter=str):
+    values = [formatter(member.value) for member in enum_cls]
+    if len(values) == 1:
+        return values[0]
+    if len(values) == 2:
+        return f"{values[0]} or {values[1]}"
+    return f"{', '.join(values[:-1])}, or {values[-1]}"
+
+
 class TRWError(Exception):
     code = None
     stage = None
@@ -68,19 +77,31 @@ class InvalidPositiveQuantityError(InvalidFieldValueError):
 
 
 class InvalidOrderTypeError(InvalidFieldValueError):
-    def __init__(self):
-        super().__init__("order_type", "PAPER or REAL")
+    def __init__(self, enum_cls=None):
+        if enum_cls is None:
+            from trw.types.enums import OrderType
+            enum_cls = OrderType
+        super().__init__("order_type", format_allowed_values(enum_cls))
 
 
 class InvalidOrderActionError(InvalidFieldValueError):
-    def __init__(self):
-        super().__init__("strategy.order_action", "BUY or SELL")
+    def __init__(self, enum_cls=None):
+        if enum_cls is None:
+            from trw.types.enums import OrderAction
+            enum_cls = OrderAction
+        super().__init__("strategy.order_action", format_allowed_values(enum_cls))
 
 
 class UnsupportedExchangeError(TRWError):
     code = "unsupported_exchange"
     stage = "routing"
-    message = "No exchange value matching Binance, Bybit, or Hyperliquid"
+
+    def __init__(self, enum_cls=None):
+        if enum_cls is None:
+            from trw.types.enums import Exchange
+            enum_cls = Exchange
+        self.message = f"No exchange value matching {format_allowed_values(enum_cls, str.title)}"
+        super().__init__()
 
 
 class ExchangeSubmissionError(TRWError):
