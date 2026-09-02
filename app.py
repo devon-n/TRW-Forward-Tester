@@ -27,11 +27,11 @@ from errors import (
     TRWError,
 )
 from logging_utils import sanitize_dict
-from trw.types.enums import (
+from models.enums import (
     Exchange,
     OrderType,
 )
-from trw.types.webhook import WebhookPayload
+from models.webhook import WebhookPayload
 
 load_dotenv()
 

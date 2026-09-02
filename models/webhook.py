@@ -13,7 +13,7 @@ from errors import (
     MissingRequiredFieldError,
     UnsupportedExchangeError,
 )
-from trw.types.enums import (
+from models.enums import (
     Exchange,
     OrderAction,
     OrderType,

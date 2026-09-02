@@ -9,12 +9,12 @@ from errors import (
     InvalidPositiveQuantityError,
 )
 from tests.test_app import build_webhook_payload
-from trw.types.enums import (
+from models.enums import (
     Exchange,
     OrderAction,
     OrderType,
 )
-from trw.types.webhook import WebhookPayload
+from models.webhook import WebhookPayload
 
 
 def build_payload():

@@ -1,4 +1,4 @@
-from trw.types.enums import (
+from models.enums import (
     Exchange,
     OrderAction,
     OrderType,
