@@ -22,36 +22,22 @@ from exchanges.bybit import place_order_bybit
 from exchanges.hyperliquid import place_order_hyperliquid
 from errors import (
     ExchangeSubmissionError,
-    InvalidFieldTypeError,
-    MissingRequiredFieldError,
+    InvalidPositiveQuantityError,
     PersistenceError,
-    UnsupportedExchangeError,
+    TRWError,
 )
 from logging_utils import sanitize_dict
+from models.enums import (
+    Exchange,
+    OrderType,
+)
+from models.webhook import WebhookPayload
 
 load_dotenv()
 
 app = Flask(__name__)
 mongo_client = None
 trades_collection = None
-
-
-REQUIRED_WEBHOOK_FIELDS = (
-    ('strategyName',),
-    ('ticker',),
-    ('bar', 'time'),
-    ('bar', 'close'),
-    ('strategy', 'order_action'),
-    ('strategy', 'order_contracts'),
-    ('strategy', 'order_price'),
-    ('strategy', 'position_size'),
-    ('strategy', 'order_id'),
-    ('strategy', 'market_position'),
-    ('strategy', 'market_position_size'),
-    ('strategy', 'prev_market_position'),
-    ('strategy', 'prev_market_position_size'),
-    ('leverage',),
-)
 
 
 @lru_cache(maxsize=1)
@@ -64,27 +50,20 @@ def get_webhook_secret():
     return os.environ.get('WEBHOOK_SECRET', '').strip()
 
 
-def validate_webhook_payload(data):
-    """Validate fields already required by execution and persistence paths."""
-    for path in REQUIRED_WEBHOOK_FIELDS:
-        current = data
-        traversed = []
-        for key in path:
-            traversed.append(key)
-            if not isinstance(current, dict):
-                field = '.'.join(traversed[:-1])
-                return InvalidFieldTypeError(field, "an object")
-            if key not in current:
-                return MissingRequiredFieldError('.'.join(path))
-            current = current[key]
+def _normalize_ticker(ticker):
+    normalized = ticker.replace('.P', '')
+    return normalized + "T" if normalized.endswith("USD") else normalized
 
-    quantity = data['strategy']['order_contracts']
+
+def _quantity_validation_failure(quantity):
     try:
-        float(quantity)
-    except (TypeError, ValueError):
-        return InvalidFieldTypeError("strategy.order_contracts", "numeric")
-
+        number = WebhookPayload.parse_finite_number(quantity, "strategy.order_contracts")
+    except TRWError as failure:
+        return failure
+    if number <= 0:
+        return InvalidPositiveQuantityError()
     return None
+
 
 # Decorator to restrict access to whitelisted IPs only
 def whitelist_ip(func):
@@ -150,16 +129,28 @@ def record_trade(data, order_response, failure=None):
 
 def execute_order(data):
     """Executes a real Bybit/Binance order or simulates it for paper trading."""
-    data.pop('passphrase', None)
+    try:
+        payload = WebhookPayload.from_dict(data)
+    except TRWError as failure:
+        failure.log()
+        return False
+
+    data.clear()
+    data.update(payload.to_execution_dict())
+
     quantity = data['strategy']['order_contracts']
     ticker = data['ticker']
-    order_type = str(data.get('order_type', 'PAPER')).upper()
-    exchange = (data.get('exchange') or '').upper()
-    data['order_type'] = order_type
+    order_type = payload.order_type
+    exchange = payload.exchange
+
+    failure = _quantity_validation_failure(quantity)
+    if failure is not None:
+        failure.log()
+        return False
+    side = payload.order_action
 
     # Update min qty and precision
-    ticker = ticker.replace('.P', '')
-    ticker = ticker + "T" if ticker.endswith("USD") else ticker
+    ticker = _normalize_ticker(ticker)
     if ticker in minQtyDict:
         if float(quantity) < float(minQtyDict[ticker]):
             quantity = minQtyDict[ticker]
@@ -167,10 +158,15 @@ def execute_order(data):
     if ticker in precisionDecimalDict:
         quantity = str(round(float(quantity), precisionDecimalDict[ticker]))
 
+    failure = _quantity_validation_failure(quantity)
+    if failure is not None:
+        failure.log()
+        return False
+
     data['strategy']['order_contracts'] = quantity
 
-    if order_type == "REAL":
-        if exchange == "BINANCE":
+    if order_type == OrderType.REAL:
+        if exchange == Exchange.BINANCE:
             try:
                 order_response = place_order_binance(ticker, quantity, data)
                 record_trade(data, order_response)
@@ -180,7 +176,7 @@ def execute_order(data):
                 failure.log(e)
                 return False
 
-        elif exchange == "BYBIT":
+        elif exchange == Exchange.BYBIT:
             try:
                 order_response = place_order_bybit(ticker, quantity, data)
                 record_trade(data, order_response)
@@ -189,7 +185,7 @@ def execute_order(data):
                 record_trade(data, "Failed Real Order?", failure.to_dict())
                 failure.log(e)
                 return False
-        elif exchange == "HYPERLIQUID":
+        elif exchange == Exchange.HYPERLIQUID:
             try:
                 order_response = place_order_hyperliquid(ticker, quantity, data)
                 record_trade(data, order_response)
@@ -199,10 +195,8 @@ def execute_order(data):
                 failure.log(e)
                 return False
         else:
-            UnsupportedExchangeError().log()
             return False
     else:
-        side = data['strategy']['order_action'].upper()
         print(f"Simulated paper order: {order_type} - {side} {quantity} {ticker}")
         record_trade(data, None)
     return True
@@ -250,12 +244,13 @@ def webhook():
     data = dict(data)
     data.pop('passphrase', None)
 
-    failure = validate_webhook_payload(data)
-    if failure is not None:
+    try:
+        payload = WebhookPayload.from_dict(data)
+    except TRWError as failure:
         failure.log()
         return jsonify({"status": "error", "reason": "invalid payload", "failure": failure.to_dict()}), 400
 
-    success = execute_order(data)
+    success = execute_order(payload.to_execution_dict())
 
     if success:
         return jsonify({"code": "success", "message": "Order executed"}), 200

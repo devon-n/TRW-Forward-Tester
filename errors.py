@@ -1,6 +1,18 @@
 import json
 
 from logging_utils import sanitize_dict
+from models.enums import (
+    Exchange,
+    OrderAction,
+    OrderType,
+)
+
+
+def format_allowed_values(enum_cls, formatter=str):
+    return " or ".join(
+        formatter(member.value)
+        for member in enum_cls
+    )
 
 
 class TRWError(Exception):
@@ -43,10 +55,53 @@ class InvalidFieldTypeError(TRWError):
         super().__init__()
 
 
+class InvalidFieldValueError(TRWError):
+    code = "invalid_field_value"
+    stage = "validation"
+
+    def __init__(self, field, expected_value):
+        self.message = f"Webhook field has unsupported value; expected {expected_value}: {field}"
+        super().__init__()
+
+
+class InvalidFiniteNumericTypeError(InvalidFieldTypeError):
+    def __init__(self, field):
+        super().__init__(field, "finite numeric")
+
+
+class InvalidFiniteNumericValueError(InvalidFieldValueError):
+    def __init__(self, field):
+        super().__init__(field, "a finite numeric value")
+
+
+class InvalidPositiveQuantityError(InvalidFieldValueError):
+    def __init__(self, field="strategy.order_contracts"):
+        super().__init__(field, "a positive finite numeric value")
+
+
+class InvalidOrderTypeError(InvalidFieldValueError):
+    def __init__(self, enum_cls=None):
+        if enum_cls is None:
+            enum_cls = OrderType
+        super().__init__("order_type", format_allowed_values(enum_cls))
+
+
+class InvalidOrderActionError(InvalidFieldValueError):
+    def __init__(self, enum_cls=None):
+        if enum_cls is None:
+            enum_cls = OrderAction
+        super().__init__("strategy.order_action", format_allowed_values(enum_cls))
+
+
 class UnsupportedExchangeError(TRWError):
     code = "unsupported_exchange"
     stage = "routing"
-    message = "No exchange value matching Binance, Bybit, or Hyperliquid"
+
+    def __init__(self, enum_cls=None):
+        if enum_cls is None:
+            enum_cls = Exchange
+        self.message = f"No exchange value matching {format_allowed_values(enum_cls, str.title)}"
+        super().__init__()
 
 
 class ExchangeSubmissionError(TRWError):

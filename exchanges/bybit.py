@@ -10,7 +10,7 @@ def place_order_bybit(symbol, qty, data):
         api_key=os.getenv('API_KEY'),
         api_secret=os.getenv('API_SECRET'),
     )
-    side = data['strategy']['order_action'][0].upper() + data['strategy']['order_action'][1:]
+    side = data['strategy']['order_action'].upper().capitalize()
     leverage = float(data.get('leverage', 0))
     print(f"Preparing order for Bybit: REAL - {side} {qty} {symbol} with leverage {leverage}")
     if leverage != 0:
