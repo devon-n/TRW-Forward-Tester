@@ -1,6 +1,6 @@
 # TRW Forward Tester
 
-Flask webhook service for forwarding TradingView-style JSON alerts to Binance, Bybit, or Hyperliquid and storing every event in MongoDB. A separate Streamlit dashboard reads the same `trading.trades` collection for reporting.
+Flask webhook service for forwarding TradingView-style JSON alerts to Binance, Bybit, Hyperliquid, or Lighter and storing every event in MongoDB. A separate Streamlit dashboard reads the same `trading.trades` collection for reporting.
 
 This repo does not decide when to trade. Strategy logic, entries, exits, sizing, and whether an alert is paper or live all come from Pine Script or another webhook sender. This service validates the request, normalizes quantity, routes the order, and records the result.
 
@@ -55,6 +55,10 @@ Edit `.env` before running anything.
 | `HYPERLIQUID_WALLET_ADDRESS` | Hyperliquid wallet address |
 | `HYPERLIQUID_PRIVATE_KEY` | Hyperliquid private key for signed order actions |
 | `HYPERLIQUID_SLIPPAGE` | Optional default slippage for Hyperliquid market orders, for example `0.01` |
+| `LIGHTER_ACCOUNT_INDEX` | Lighter account index |
+| `LIGHTER_API_KEY_INDEX` | Lighter API key index |
+| `LIGHTER_API_PRIVATE_KEY` | Lighter API private key |
+| `LIGHTER_SLIPPAGE` | Fractional worst-price tolerance for Lighter market orders; `0.01` means 1%. An input is highly recommended as the default set by Lighter is `0`, meaning no slippage tolerance is allowed, which can result in frequently canceled/partially filled trades |
 
 Notes:
 
@@ -291,7 +295,7 @@ Use `webhook_format.json` as the template. Important fields:
 |--------|---------|
 | `order_type` | `PAPER` or `REAL` |
 | `passphrase` | Must match `WEBHOOK_SECRET` (if configured) |
-| `exchange` | For `REAL` only: `BINANCE`, `BYBIT`, or `HYPERLIQUID` |
+| `exchange` | For `REAL` only: `BINANCE`, `BYBIT`, `HYPERLIQUID`, or `LIGHTER` |
 | `ticker` | Symbol, normalized inside the app |
 | `leverage` | Passed to exchange helpers where supported |
 | `strategy` / `bar` / `strategyName` | Stored with the trade record |
@@ -358,14 +362,14 @@ The dashboard needs `MONGO_URI` and at least one trade in `trading.trades`.
 4. Invalid or empty JSON gets `400`.
 5. Quantity rules from `config.py` normalize the symbol, enforce minimum quantity, and apply decimal precision where configured.
 6. If `order_type` is `PAPER`, no exchange call is made and the event is still saved to MongoDB.
-7. If `order_type` is `REAL`, the app routes to `BINANCE`, `BYBIT`, or `HYPERLIQUID` and uses environment-based credentials for that venue.
+7. If `order_type` is `REAL`, the app routes to `BINANCE`, `BYBIT`, `HYPERLIQUID`, or `LIGHTER` and uses environment-based credentials for that venue.
 8. The event is inserted into `trading.trades` with metadata, quantity, side, leverage, and `order_response`.
 
 ```mermaid
 flowchart LR
   TV[Alert sender e.g. TradingView]
   FT[Forward Tester Flask]
-  EX[Binance / Bybit / Hyperliquid]
+  EX[Binance / Bybit / Hyperliquid / Lighter]
   DB[(MongoDB trades)]
 
   TV -->|POST JSON /webhook| FT
@@ -410,7 +414,7 @@ Then set `exchange` to the correct venue and make sure the matching credentials 
 | Piece | Role |
 |--------|------|
 | `app.py` | Flask app, `/webhook`, execution routing, MongoDB writes |
-| `exchanges/` | Exchange adapters for Binance, Bybit, and Hyperliquid |
+| `exchanges/` | Exchange adapters for Binance, Bybit, Hyperliquid, and Lighter |
 | `config.py` | Minimum quantity and precision settings |
 | `webhook_format.json` | Example webhook payload |
 | `dashboard/dashboard.py` | Streamlit reporting UI |

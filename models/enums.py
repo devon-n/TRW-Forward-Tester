@@ -10,6 +10,7 @@ class Exchange(StrEnum):
     BINANCE = "BINANCE"
     BYBIT = "BYBIT"
     HYPERLIQUID = "HYPERLIQUID"
+    LIGHTER = "LIGHTER"
 
 
 class OrderAction(StrEnum):

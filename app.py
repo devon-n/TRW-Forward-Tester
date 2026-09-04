@@ -20,6 +20,7 @@ from config import (
 from exchanges.binance import place_order_binance
 from exchanges.bybit import place_order_bybit
 from exchanges.hyperliquid import place_order_hyperliquid
+from exchanges.lighter import place_order_lighter
 from errors import (
     ExchangeSubmissionError,
     InvalidPositiveQuantityError,
@@ -128,7 +129,7 @@ def record_trade(data, order_response, failure=None):
         return False
 
 def execute_order(data):
-    """Executes a real Bybit/Binance order or simulates it for paper trading."""
+    """Executes a real exchange order or simulates it for paper trading."""
     try:
         payload = WebhookPayload.from_dict(data)
     except TRWError as failure:
@@ -188,6 +189,15 @@ def execute_order(data):
         elif exchange == Exchange.HYPERLIQUID:
             try:
                 order_response = place_order_hyperliquid(ticker, quantity, data)
+                record_trade(data, order_response)
+            except Exception as e:
+                failure = ExchangeSubmissionError()
+                record_trade(data, "Failed Real Order?", failure.to_dict())
+                failure.log(e)
+                return False
+        elif exchange == Exchange.LIGHTER:
+            try:
+                order_response = place_order_lighter(ticker, quantity, data)
                 record_trade(data, order_response)
             except Exception as e:
                 failure = ExchangeSubmissionError()
