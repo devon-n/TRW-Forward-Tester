@@ -1,3 +1,4 @@
+import os
 import pytest
 from unittest.mock import MagicMock, patch
 import sys
@@ -10,6 +11,8 @@ mock_mongo_client.trading = mock_db
 mock_db.trades = mock_collection
 
 # Apply the patch globally before any imports
+os.environ.setdefault('MONGO_URI', 'mongodb://test')
+os.environ.setdefault('WHITELISTED_IPS', '127.0.0.1')
 sys.modules['pymongo'] = MagicMock()
 patcher = patch('pymongo.MongoClient', return_value=mock_mongo_client)
 patcher.start()

@@ -102,7 +102,7 @@ def test_fetch_fills_by_time_hyperliquid_uses_public_exchange(mock_create_exchan
 
 @patch.dict(os.environ, {'HYPERLIQUID_WALLET_ADDRESS': '0xabc'}, clear=True)
 def test_create_hyperliquid_exchange_requires_private_key_by_default():
-    with pytest.raises(ValueError, match='Missing Hyperliquid private key'):
+    with pytest.raises(RuntimeError, match='HYPERLIQUID_PRIVATE_KEY'):
         create_hyperliquid_exchange()
 
 

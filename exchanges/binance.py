@@ -1,11 +1,12 @@
 import json
-import os
 from binance.um_futures import UMFutures
+from config.config import Config
 from utils.logging_utils import sanitize_dict
 
 
 def place_order_binance(symbol, qty, data):
-    client = UMFutures(os.getenv('API_KEY'), os.getenv('API_SECRET'))
+    api_key, api_secret = Config.validate_binance_real()
+    client = UMFutures(api_key, api_secret)
     side = data['strategy']['order_action'].upper()
     leverage = int(data.get('leverage', 0))
     print(f"Preparing order for Binance: REAL - {side} {qty} {symbol} with leverage {leverage}")

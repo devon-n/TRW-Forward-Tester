@@ -8,10 +8,12 @@ import streamlit as st
 from helpers import calculate_profit, truncate_name
 from dotenv import load_dotenv
 from repositories.mongo import MongoRepository
+from config.config import Config
 from config.settings import minQtyDict, precisionDecimalDict
 
 
 load_dotenv()
+Config.validate_dashboard_startup()
 
 st.set_page_config(layout='wide')
 

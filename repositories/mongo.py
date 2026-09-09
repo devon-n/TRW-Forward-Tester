@@ -1,6 +1,5 @@
-import os
-
 from pymongo import MongoClient
+from config.config import Config
 
 
 class MongoRepository:
@@ -11,9 +10,7 @@ class MongoRepository:
 
     def get_mongo_client(self):
         if self.mongo_client is None:
-            mongo_uri = os.getenv('MONGO_URI')
-            if self.validate_uri and not mongo_uri:
-                raise RuntimeError("MONGO_URI is not set")
+            mongo_uri = Config.require('MONGO_URI') if self.validate_uri else Config.get_optional('MONGO_URI')
             self.mongo_client = MongoClient(mongo_uri)
         return self.mongo_client
 

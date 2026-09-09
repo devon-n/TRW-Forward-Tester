@@ -260,6 +260,7 @@ def test_execute_order_real_hyperliquid(mock_record_trade, mock_create_exchange)
 )
 @patch('exchanges.bybit.HTTP')
 @patch('app.record_trade')
+@patch.dict(os.environ, {'API_KEY': 'test-api-key', 'API_SECRET': 'test-api-secret'}, clear=False)
 def test_execute_order_real_bybit_normalizes_mixed_case_order_action(
     mock_record_trade,
     mock_http,
