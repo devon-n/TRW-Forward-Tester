@@ -1,7 +1,7 @@
 import json
 import os
 from binance.um_futures import UMFutures
-from logging_utils import sanitize_dict
+from utils.logging_utils import sanitize_dict
 
 
 def place_order_binance(symbol, qty, data):

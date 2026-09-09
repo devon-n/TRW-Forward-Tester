@@ -10,7 +10,7 @@ import json
 import os
 
 import ccxt
-from logging_utils import sanitize_dict
+from utils.logging_utils import sanitize_dict
 
 
 def create_hyperliquid_exchange(require_private_key=True):

@@ -6,8 +6,8 @@ from unittest.mock import (
 
 import pytest
 
-from errors import TRWError
-from logging_utils import sanitize_dict
+from utils.errors import TRWError
+from utils.logging_utils import sanitize_dict
 
 
 def build_webhook_payload(passphrase='test-secret'):

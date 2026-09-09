@@ -1,6 +1,6 @@
 import json
 
-from logging_utils import sanitize_dict
+from utils.logging_utils import sanitize_dict
 from models.enums import (
     Exchange,
     OrderAction,

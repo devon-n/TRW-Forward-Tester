@@ -3,7 +3,7 @@ import math
 from dataclasses import dataclass
 from typing import Any
 
-from errors import (
+from utils.errors import (
     InvalidFieldTypeError,
     InvalidFiniteNumericTypeError,
     InvalidFiniteNumericValueError,
