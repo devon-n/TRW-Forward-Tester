@@ -22,6 +22,7 @@ from repositories.mongo import MongoRepository
 from utils.errors import (
     ExchangeSubmissionError,
     InvalidPositiveQuantityError,
+    MissingCredentialError,
     PersistenceError,
     TRWError,
 )
@@ -168,6 +169,10 @@ def execute_order(data):
             try:
                 order_response = place_order_binance(ticker, quantity, data)
                 record_trade(data, order_response)
+            except MissingCredentialError as failure:
+                record_trade(data, "Failed Real Order?", failure.to_dict())
+                failure.log()
+                return False
             except Exception as e:
                 failure = ExchangeSubmissionError()
                 record_trade(data, "Failed Real Order?", failure.to_dict())
@@ -178,6 +183,10 @@ def execute_order(data):
             try:
                 order_response = place_order_bybit(ticker, quantity, data)
                 record_trade(data, order_response)
+            except MissingCredentialError as failure:
+                record_trade(data, "Failed Real Order?", failure.to_dict())
+                failure.log()
+                return False
             except Exception as e:
                 failure = ExchangeSubmissionError()
                 record_trade(data, "Failed Real Order?", failure.to_dict())
@@ -187,6 +196,10 @@ def execute_order(data):
             try:
                 order_response = place_order_hyperliquid(ticker, quantity, data)
                 record_trade(data, order_response)
+            except MissingCredentialError as failure:
+                record_trade(data, "Failed Real Order?", failure.to_dict())
+                failure.log()
+                return False
             except Exception as e:
                 failure = ExchangeSubmissionError()
                 record_trade(data, "Failed Real Order?", failure.to_dict())

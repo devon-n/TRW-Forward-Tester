@@ -10,14 +10,27 @@ import json
 
 import ccxt
 from config.config import Config
+from utils.errors import MissingCredentialError
 from utils.logging_utils import sanitize_dict
 
 
 def create_hyperliquid_exchange(require_private_key=True):
-    if require_private_key:
-        wallet_address, private_key = Config.validate_hyperliquid_real()
-    else:
-        wallet_address = Config.validate_hyperliquid_public()
+    try:
+        if require_private_key:
+            wallet_address, private_key = Config.validate_hyperliquid_real()
+        else:
+            wallet_address = Config.validate_hyperliquid_public()
+    except RuntimeError as error:
+        required = (
+            ("HYPERLIQUID_WALLET_ADDRESS", "HYPERLIQUID_PRIVATE_KEY")
+            if require_private_key else ("HYPERLIQUID_WALLET_ADDRESS",)
+        )
+        missing = tuple(
+            name for name in required
+            if not str(Config.get_optional(name) or "").strip()
+        )
+        context = "Hyperliquid signed" if require_private_key else "Hyperliquid public"
+        raise MissingCredentialError(context, missing) from error
 
     exchange_config = {
         'walletAddress': wallet_address,

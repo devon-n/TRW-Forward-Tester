@@ -29,6 +29,16 @@ def test_validate_app_startup_does_not_require_exchange_or_webhook_values():
         Config.validate_app_startup()
 
 
+@pytest.mark.parametrize('missing', ['MONGO_URI', 'WHITELISTED_IPS'])
+def test_validate_app_startup_remains_fail_fast(missing):
+    environment = {'MONGO_URI': 'mongodb://test', 'WHITELISTED_IPS': '127.0.0.1'}
+    environment.pop(missing)
+
+    with patch.dict(os.environ, environment, clear=True):
+        with pytest.raises(RuntimeError, match=missing):
+            Config.validate_app_startup()
+
+
 def test_context_validators_are_exchange_specific():
     with patch.dict(os.environ, {'API_KEY': 'key', 'API_SECRET': 'secret'}, clear=True):
         Config.validate_binance_real()
@@ -45,6 +55,12 @@ def test_context_validators_are_exchange_specific():
 def test_dashboard_validation_requires_mongo_only():
     with patch.dict(os.environ, {'MONGO_URI': 'mongodb://test'}, clear=True):
         Config.validate_dashboard_startup()
+
+
+def test_dashboard_validation_remains_fail_fast_without_mongo():
+    with patch.dict(os.environ, {}, clear=True):
+        with pytest.raises(RuntimeError, match='MONGO_URI'):
+            Config.validate_dashboard_startup()
 
 
 def test_config_reads_environment_dynamically():

@@ -1,11 +1,19 @@
 import json
 from binance.um_futures import UMFutures
 from config.config import Config
+from utils.errors import MissingCredentialError
 from utils.logging_utils import sanitize_dict
 
 
 def place_order_binance(symbol, qty, data):
-    api_key, api_secret = Config.validate_binance_real()
+    try:
+        api_key, api_secret = Config.validate_binance_real()
+    except RuntimeError as error:
+        missing = tuple(
+            name for name in ("API_KEY", "API_SECRET")
+            if not str(Config.get_optional(name) or "").strip()
+        )
+        raise MissingCredentialError("Binance REAL", missing) from error
     client = UMFutures(api_key, api_secret)
     side = data['strategy']['order_action'].upper()
     leverage = int(data.get('leverage', 0))

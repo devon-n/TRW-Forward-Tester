@@ -4,6 +4,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 import ccxt
 
+from utils.errors import MissingCredentialError
+
 from exchanges.hyperliquid import (
     _resolve_market_reference_price,
     cancel_entry_and_children_hyperliquid,
@@ -102,7 +104,7 @@ def test_fetch_fills_by_time_hyperliquid_uses_public_exchange(mock_create_exchan
 
 @patch.dict(os.environ, {'HYPERLIQUID_WALLET_ADDRESS': '0xabc'}, clear=True)
 def test_create_hyperliquid_exchange_requires_private_key_by_default():
-    with pytest.raises(RuntimeError, match='HYPERLIQUID_PRIVATE_KEY'):
+    with pytest.raises(MissingCredentialError, match='HYPERLIQUID_PRIVATE_KEY'):
         create_hyperliquid_exchange()
 
 

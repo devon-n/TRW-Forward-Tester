@@ -6,7 +6,7 @@ from unittest.mock import (
 
 import pytest
 
-from utils.errors import TRWError
+from utils.errors import ExchangeSubmissionError, MissingCredentialError, TRWError
 from utils.logging_utils import sanitize_dict
 
 
@@ -338,6 +338,37 @@ def test_execute_order_real_adapter_exception_records_legacy_and_structured_fail
     mock_log.assert_called_once()
     assert mock_log.call_args[0][0].to_dict() == failure
     assert isinstance(mock_log.call_args[0][1], RuntimeError)
+
+
+@patch('app.place_order_binance', side_effect=MissingCredentialError(
+    'Binance REAL', ('API_KEY', 'API_SECRET')
+))
+@patch('app.record_trade')
+@patch.object(TRWError, 'log', autospec=True)
+def test_execute_order_preserves_missing_credential_failure(
+    mock_log,
+    mock_record_trade,
+    mock_place_order_binance,
+):
+    from app import execute_order
+
+    data = build_webhook_payload()
+    data.pop('passphrase')
+    data['order_type'] = 'REAL'
+    data['exchange'] = 'BINANCE'
+
+    result = execute_order(data)
+
+    assert result is False
+    mock_place_order_binance.assert_called_once()
+    failure = {
+        "code": "missing_credential",
+        "stage": "configuration",
+        "message": "Missing required Binance REAL credentials: API_KEY, API_SECRET",
+    }
+    mock_record_trade.assert_called_once_with(data, "Failed Real Order?", failure)
+    assert mock_log.call_args[0][0].to_dict() == failure
+    assert not isinstance(mock_log.call_args[0][0], ExchangeSubmissionError)
 
 
 @patch('app.trades_collection')
