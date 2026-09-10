@@ -10,7 +10,7 @@ def place_order_bybit(symbol, qty, data):
         api_key, api_secret = Config.validate_bybit_real()
     except RuntimeError as error:
         missing = tuple(
-            name for name in ("API_KEY", "API_SECRET")
+            name for name in (Config.API_KEY, Config.API_SECRET)
             if not str(Config.get_optional(name) or "").strip()
         )
         raise MissingCredentialError("Bybit REAL", missing) from error

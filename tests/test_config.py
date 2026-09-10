@@ -6,6 +6,21 @@ import pytest
 from config.config import Config
 
 
+def test_config_exposes_canonical_environment_name_constants():
+    expected = {
+        'MONGO_URI': 'MONGO_URI',
+        'WHITELISTED_IPS': 'WHITELISTED_IPS',
+        'WEBHOOK_SECRET': 'WEBHOOK_SECRET',
+        'API_KEY': 'API_KEY',
+        'API_SECRET': 'API_SECRET',
+        'HYPERLIQUID_WALLET_ADDRESS': 'HYPERLIQUID_WALLET_ADDRESS',
+        'HYPERLIQUID_PRIVATE_KEY': 'HYPERLIQUID_PRIVATE_KEY',
+        'HYPERLIQUID_SLIPPAGE': 'HYPERLIQUID_SLIPPAGE',
+    }
+
+    assert {name: getattr(Config, name) for name in expected} == expected
+
+
 def test_require_accepts_present_nonblank_values():
     with patch.dict(os.environ, {'CONFIG_TEST_VALUE': ' configured '}, clear=False):
         assert Config.require('CONFIG_TEST_VALUE') == ' configured '
@@ -64,7 +79,7 @@ def test_dashboard_validation_remains_fail_fast_without_mongo():
 
 
 def test_config_reads_environment_dynamically():
-    with patch.dict(os.environ, {'CONFIG_TEST_VALUE': 'first'}, clear=False):
-        assert Config.get_optional('CONFIG_TEST_VALUE') == 'first'
-    with patch.dict(os.environ, {'CONFIG_TEST_VALUE': 'second'}, clear=False):
-        assert Config.get_optional('CONFIG_TEST_VALUE') == 'second'
+    with patch.dict(os.environ, {Config.API_KEY: 'first'}, clear=False):
+        assert Config.get_optional(Config.API_KEY) == 'first'
+    with patch.dict(os.environ, {Config.API_KEY: 'second'}, clear=False):
+        assert Config.get_optional(Config.API_KEY) == 'second'

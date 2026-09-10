@@ -22,8 +22,8 @@ def create_hyperliquid_exchange(require_private_key=True):
             wallet_address = Config.validate_hyperliquid_public()
     except RuntimeError as error:
         required = (
-            ("HYPERLIQUID_WALLET_ADDRESS", "HYPERLIQUID_PRIVATE_KEY")
-            if require_private_key else ("HYPERLIQUID_WALLET_ADDRESS",)
+            (Config.HYPERLIQUID_WALLET_ADDRESS, Config.HYPERLIQUID_PRIVATE_KEY)
+            if require_private_key else (Config.HYPERLIQUID_WALLET_ADDRESS,)
         )
         missing = tuple(
             name for name in required
@@ -91,7 +91,7 @@ def extract_order_params(data):
         if value is not None and value != '':
             params[key] = value
 
-    slippage = _parse_slippage(data.get('slippage')) or _parse_slippage(Config.get_optional('HYPERLIQUID_SLIPPAGE'))
+    slippage = _parse_slippage(data.get('slippage')) or _parse_slippage(Config.get_optional(Config.HYPERLIQUID_SLIPPAGE))
     if slippage is not None and slippage > 0:
         params['slippage'] = slippage
 
@@ -204,7 +204,7 @@ def fetch_historical_orders_hyperliquid():
     exchange = create_hyperliquid_exchange(require_private_key=False)
     return exchange.public_post_info({
         'type': 'historicalOrders',
-        'user': Config.require('HYPERLIQUID_WALLET_ADDRESS'),
+        'user': Config.require(Config.HYPERLIQUID_WALLET_ADDRESS),
     })
 
 
@@ -212,7 +212,7 @@ def fetch_fills_by_time_hyperliquid(start_time, end_time):
     exchange = create_hyperliquid_exchange(require_private_key=False)
     return exchange.public_post_info({
         'type': 'userFillsByTime',
-        'user': Config.require('HYPERLIQUID_WALLET_ADDRESS'),
+        'user': Config.require(Config.HYPERLIQUID_WALLET_ADDRESS),
         'startTime': start_time,
         'endTime': end_time,
     })

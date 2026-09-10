@@ -44,12 +44,12 @@ mongo_repository = MongoRepository()
 
 @lru_cache(maxsize=1)
 def get_whitelisted_ips():
-    raw = Config.get_optional('WHITELISTED_IPS', '')
+    raw = Config.get_optional(Config.WHITELISTED_IPS, '')
     return {ip.strip() for ip in raw.split(',') if ip.strip()}
 
 
 def get_webhook_secret():
-    return Config.get_optional('WEBHOOK_SECRET', '').strip()
+    return Config.get_optional(Config.WEBHOOK_SECRET, '').strip()
 
 
 def _normalize_ticker(ticker):
