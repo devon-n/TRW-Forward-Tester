@@ -7,11 +7,12 @@ import pandas as pd
 import streamlit as st
 from helpers import calculate_profit, truncate_name
 from repositories.mongo import MongoRepository
-from config.config import DatabaseSettings
+from config.config import AppSettings
 from config.settings import minQtyDict, precisionDecimalDict
 
 
-database_settings = DatabaseSettings()
+app_settings = AppSettings()
+app_settings.validate_required('MONGO_URI')
 
 st.set_page_config(layout='wide')
 

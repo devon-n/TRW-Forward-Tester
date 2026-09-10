@@ -33,6 +33,7 @@ from models.enums import (
 from models.webhook import WebhookPayload
 
 app_settings = AppSettings()
+app_settings.validate_required('MONGO_URI', 'WHITELISTED_IPS')
 
 app = Flask(__name__)
 mongo_client = None

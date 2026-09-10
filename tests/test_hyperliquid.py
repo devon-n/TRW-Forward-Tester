@@ -57,6 +57,7 @@ def test_cancel_entry_and_children_hyperliquid_marks_partial_child_failures(mock
 
 
 @patch('exchanges.hyperliquid.create_hyperliquid_exchange')
+@patch.dict(os.environ, {'HYPERLIQUID_WALLET_ADDRESS': '0xabc'}, clear=False)
 def test_fetch_historical_orders_hyperliquid_uses_public_exchange(mock_create_exchange):
     mock_exchange = MagicMock()
     mock_create_exchange.return_value = mock_exchange
@@ -72,6 +73,7 @@ def test_fetch_historical_orders_hyperliquid_uses_public_exchange(mock_create_ex
 
 
 @patch('exchanges.hyperliquid.create_hyperliquid_exchange')
+@patch.dict(os.environ, {'HYPERLIQUID_WALLET_ADDRESS': '0xabc'}, clear=False)
 def test_fetch_fills_by_time_hyperliquid_uses_public_exchange(mock_create_exchange):
     mock_exchange = MagicMock()
     mock_create_exchange.return_value = mock_exchange

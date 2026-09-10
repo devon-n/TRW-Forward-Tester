@@ -9,20 +9,21 @@ ExchangeClient-style wrapper.
 import json
 
 import ccxt
-from config.config import ExchangeSettings
+from config.config import AppSettings, SettingsValidationError
 from utils.errors import MissingCredentialError
 from utils.logging_utils import sanitize_dict
 
 def create_hyperliquid_exchange(require_private_key=True):
-    settings = ExchangeSettings()
+    settings = AppSettings()
     wallet_address, private_key = settings.HYPERLIQUID_WALLET_ADDRESS, settings.HYPERLIQUID_PRIVATE_KEY
-    required = (("HYPERLIQUID_WALLET_ADDRESS", wallet_address),)
+    required = ['HYPERLIQUID_WALLET_ADDRESS']
     if require_private_key:
-        required += (("HYPERLIQUID_PRIVATE_KEY", private_key),)
-    missing = tuple(name for name, value in required if not value or not str(value).strip())
-    if missing:
+        required.append('HYPERLIQUID_PRIVATE_KEY')
+    try:
+        settings.validate_required(*required)
+    except SettingsValidationError as error:
         context = "Hyperliquid signed" if require_private_key else "Hyperliquid public"
-        raise MissingCredentialError(context, missing)
+        raise MissingCredentialError(context, error.missing) from error
 
     exchange_config = {
         'walletAddress': wallet_address,
@@ -83,7 +84,7 @@ def extract_order_params(data):
         if value is not None and value != '':
             params[key] = value
 
-    settings = ExchangeSettings()
+    settings = AppSettings()
     slippage = _parse_slippage(data.get('slippage')) or settings.HYPERLIQUID_SLIPPAGE
     if slippage is not None and slippage > 0:
         params['slippage'] = slippage
@@ -194,7 +195,7 @@ def fetch_balance_hyperliquid():
 
 
 def fetch_historical_orders_hyperliquid():
-    settings = ExchangeSettings()
+    settings = AppSettings()
     exchange = create_hyperliquid_exchange(require_private_key=False)
     return exchange.public_post_info({
         'type': 'historicalOrders',
@@ -203,7 +204,7 @@ def fetch_historical_orders_hyperliquid():
 
 
 def fetch_fills_by_time_hyperliquid(start_time, end_time):
-    settings = ExchangeSettings()
+    settings = AppSettings()
     exchange = create_hyperliquid_exchange(require_private_key=False)
     return exchange.public_post_info({
         'type': 'userFillsByTime',

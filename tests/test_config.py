@@ -2,9 +2,8 @@ import os
 from unittest.mock import patch
 
 import pytest
-from pydantic import ValidationError
 
-from config.config import AppSettings, DatabaseSettings
+from config.config import AppSettings, SettingsValidationError
 from repositories.mongo import MongoRepository
 
 
@@ -18,20 +17,22 @@ def test_app_settings_accepts_required_fields_without_optional_values():
 
 
 @pytest.mark.parametrize("missing", ["MONGO_URI", "WHITELISTED_IPS"])
-def test_app_settings_rejects_missing_startup_fields(missing):
+def test_app_settings_rejects_missing_required_fields(missing):
     environment = {"MONGO_URI": "mongodb://test", "WHITELISTED_IPS": "127.0.0.1"}
     environment.pop(missing)
 
     with patch.dict(os.environ, environment, clear=True):
-        with pytest.raises(ValidationError, match=missing):
-            AppSettings()
+        settings = AppSettings()
+        with pytest.raises(SettingsValidationError, match=missing):
+            settings.validate_required(missing)
 
 
-def test_database_settings_requires_only_mongo_uri():
+def test_app_settings_validates_context_specific_requirements():
     with patch.dict(os.environ, {"MONGO_URI": "mongodb://test"}, clear=True):
-        settings = DatabaseSettings()
+        settings = AppSettings()
 
     assert settings.MONGO_URI == "mongodb://test"
+    settings.validate_required('MONGO_URI')
 
     with patch.dict(os.environ, {}, clear=True), patch('repositories.mongo.MongoClient') as mock_client:
         repository = MongoRepository(validate_uri=False)
@@ -40,7 +41,7 @@ def test_database_settings_requires_only_mongo_uri():
 
     with patch.dict(os.environ, {}, clear=True), patch('repositories.mongo.MongoClient') as mock_client:
         repository = MongoRepository(validate_uri=True)
-        with pytest.raises(ValidationError, match='MONGO_URI'):
+        with pytest.raises(SettingsValidationError, match='MONGO_URI'):
             repository.get_mongo_client()
     mock_client.assert_not_called()
 
