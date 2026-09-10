@@ -9,28 +9,20 @@ ExchangeClient-style wrapper.
 import json
 
 import ccxt
-from config.config import Config
+from config.config import ExchangeSettings
 from utils.errors import MissingCredentialError
 from utils.logging_utils import sanitize_dict
 
-
 def create_hyperliquid_exchange(require_private_key=True):
-    try:
-        if require_private_key:
-            wallet_address, private_key = Config.validate_hyperliquid_real()
-        else:
-            wallet_address = Config.validate_hyperliquid_public()
-    except RuntimeError as error:
-        required = (
-            (Config.HYPERLIQUID_WALLET_ADDRESS, Config.HYPERLIQUID_PRIVATE_KEY)
-            if require_private_key else (Config.HYPERLIQUID_WALLET_ADDRESS,)
-        )
-        missing = tuple(
-            name for name in required
-            if not str(Config.get_optional(name) or "").strip()
-        )
+    settings = ExchangeSettings()
+    wallet_address, private_key = settings.HYPERLIQUID_WALLET_ADDRESS, settings.HYPERLIQUID_PRIVATE_KEY
+    required = (("HYPERLIQUID_WALLET_ADDRESS", wallet_address),)
+    if require_private_key:
+        required += (("HYPERLIQUID_PRIVATE_KEY", private_key),)
+    missing = tuple(name for name, value in required if not value or not str(value).strip())
+    if missing:
         context = "Hyperliquid signed" if require_private_key else "Hyperliquid public"
-        raise MissingCredentialError(context, missing) from error
+        raise MissingCredentialError(context, missing)
 
     exchange_config = {
         'walletAddress': wallet_address,
@@ -91,7 +83,8 @@ def extract_order_params(data):
         if value is not None and value != '':
             params[key] = value
 
-    slippage = _parse_slippage(data.get('slippage')) or _parse_slippage(Config.get_optional(Config.HYPERLIQUID_SLIPPAGE))
+    settings = ExchangeSettings()
+    slippage = _parse_slippage(data.get('slippage')) or settings.HYPERLIQUID_SLIPPAGE
     if slippage is not None and slippage > 0:
         params['slippage'] = slippage
 
@@ -201,18 +194,20 @@ def fetch_balance_hyperliquid():
 
 
 def fetch_historical_orders_hyperliquid():
+    settings = ExchangeSettings()
     exchange = create_hyperliquid_exchange(require_private_key=False)
     return exchange.public_post_info({
         'type': 'historicalOrders',
-        'user': Config.require(Config.HYPERLIQUID_WALLET_ADDRESS),
+        'user': settings.HYPERLIQUID_WALLET_ADDRESS,
     })
 
 
 def fetch_fills_by_time_hyperliquid(start_time, end_time):
+    settings = ExchangeSettings()
     exchange = create_hyperliquid_exchange(require_private_key=False)
     return exchange.public_post_info({
         'type': 'userFillsByTime',
-        'user': Config.require(Config.HYPERLIQUID_WALLET_ADDRESS),
+        'user': settings.HYPERLIQUID_WALLET_ADDRESS,
         'startTime': start_time,
         'endTime': end_time,
     })

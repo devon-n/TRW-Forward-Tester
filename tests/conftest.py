@@ -1,5 +1,6 @@
 import os
 import pytest
+from config.config import AppSettings
 from unittest.mock import MagicMock, patch
 import sys
 
@@ -31,6 +32,7 @@ def clear_app_caches():
 @pytest.fixture
 def client():
     """Flask test client fixture"""
+    app_module.app_settings = AppSettings()
     app.config['TESTING'] = True
     with app.test_client() as client:
         yield client

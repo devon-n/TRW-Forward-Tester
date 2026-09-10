@@ -38,12 +38,15 @@ def test_welcome(client):
     assert response.data == b""
 
 
-@patch.dict(os.environ, {'WHITELISTED_IPS': '127.0.0.1', 'WEBHOOK_SECRET': 'test-secret'})
+@patch.dict(os.environ, {'WHITELISTED_IPS': '127.0.0.1'})
 @patch('app.execute_order', return_value=True)
 def test_webhook_accepts_valid_paper_payload(mock_execute_order, client):
+    from app import app_settings
+
     data = build_webhook_payload()
 
-    response = client.post('/webhook', json=data, headers={'X-Forwarded-For': '127.0.0.1'})
+    with patch.object(app_settings, 'WEBHOOK_SECRET', 'test-secret'):
+        response = client.post('/webhook', json=data, headers={'X-Forwarded-For': '127.0.0.1'})
 
     assert response.status_code == 200
     assert response.json == {"code": "success", "message": "Order executed"}
@@ -52,14 +55,17 @@ def test_webhook_accepts_valid_paper_payload(mock_execute_order, client):
     mock_execute_order.assert_called_once_with(expected_data)
 
 
-@patch.dict(os.environ, {'WHITELISTED_IPS': '127.0.0.1', 'WEBHOOK_SECRET': 'test-secret'})
+@patch.dict(os.environ, {'WHITELISTED_IPS': '127.0.0.1'})
 @patch('app.execute_order', return_value=True)
 def test_webhook_accepts_valid_real_payload_with_normalized_exchange(mock_execute_order, client):
+    from app import app_settings
+
     data = build_webhook_payload()
     data['order_type'] = 'real'
     data['exchange'] = 'bInAnCe'
 
-    response = client.post('/webhook', json=data, headers={'X-Forwarded-For': '127.0.0.1'})
+    with patch.object(app_settings, 'WEBHOOK_SECRET', 'test-secret'):
+        response = client.post('/webhook', json=data, headers={'X-Forwarded-For': '127.0.0.1'})
 
     assert response.status_code == 200
     expected_data = dict(data)
@@ -91,14 +97,17 @@ def test_whitelist_ip_decorator():
 
 
 @pytest.mark.parametrize('passphrase', [None, 'wrong-secret'])
-@patch.dict(os.environ, {'WHITELISTED_IPS': '127.0.0.1', 'WEBHOOK_SECRET': 'test-secret'})
+@patch.dict(os.environ, {'WHITELISTED_IPS': '127.0.0.1'})
 @patch('app.execute_order')
 def test_webhook_rejects_missing_or_wrong_passphrase(mock_execute_order, client, passphrase):
+    from app import app_settings
+
     data = build_webhook_payload(passphrase=passphrase)
     if passphrase is None:
         data.pop('passphrase')
 
-    response = client.post('/webhook', json=data, headers={'X-Forwarded-For': '127.0.0.1'})
+    with patch.object(app_settings, 'WEBHOOK_SECRET', 'test-secret'):
+        response = client.post('/webhook', json=data, headers={'X-Forwarded-For': '127.0.0.1'})
 
     mock_execute_order.assert_not_called()
     assert response.status_code == 401
@@ -115,7 +124,7 @@ def test_webhook_rejects_missing_or_wrong_passphrase(mock_execute_order, client,
         (lambda data: data.update({'order_type': 'REAL', 'exchange': 'UNKNOWN'}), 'unsupported_exchange', 'exchange'),
     ],
 )
-@patch.dict(os.environ, {'WHITELISTED_IPS': '127.0.0.1', 'WEBHOOK_SECRET': 'test-secret'})
+@patch.dict(os.environ, {'WHITELISTED_IPS': '127.0.0.1'})
 @patch('app.execute_order')
 def test_webhook_returns_structured_validation_failures(
     mock_execute_order,
@@ -124,10 +133,13 @@ def test_webhook_returns_structured_validation_failures(
     expected_code,
     expected_field,
 ):
+    from app import app_settings
+
     data = build_webhook_payload()
     mutate(data)
 
-    response = client.post('/webhook', json=data, headers={'X-Forwarded-For': '127.0.0.1'})
+    with patch.object(app_settings, 'WEBHOOK_SECRET', 'test-secret'):
+        response = client.post('/webhook', json=data, headers={'X-Forwarded-For': '127.0.0.1'})
 
     mock_execute_order.assert_not_called()
     assert response.status_code == 400
@@ -145,16 +157,19 @@ def test_webhook_returns_structured_validation_failures(
         ('leverage',),
     ],
 )
-@patch.dict(os.environ, {'WHITELISTED_IPS': '127.0.0.1', 'WEBHOOK_SECRET': 'test-secret'})
+@patch.dict(os.environ, {'WHITELISTED_IPS': '127.0.0.1'})
 @patch('app.execute_order')
 def test_webhook_rejects_representative_malformed_numeric_fields(mock_execute_order, client, path):
+    from app import app_settings
+
     data = build_webhook_payload()
     target = data
     for key in path[:-1]:
         target = target[key]
     target[path[-1]] = 'not-a-number'
 
-    response = client.post('/webhook', json=data, headers={'X-Forwarded-For': '127.0.0.1'})
+    with patch.object(app_settings, 'WEBHOOK_SECRET', 'test-secret'):
+        response = client.post('/webhook', json=data, headers={'X-Forwarded-For': '127.0.0.1'})
 
     mock_execute_order.assert_not_called()
     assert response.status_code == 400
@@ -427,7 +442,7 @@ def test_record_trade_mongo_insert_failure_logs_structured_failure(mock_trades_c
     assert isinstance(mock_log.call_args[0][1], RuntimeError)
 
 
-@patch.dict(os.environ, {'WHITELISTED_IPS': '127.0.0.1', 'WEBHOOK_SECRET': 'test-secret'})
+@patch.dict(os.environ, {'WHITELISTED_IPS': '127.0.0.1'})
 @patch('app.execute_order')
 def test_webhook_empty_payload(mock_execute_order, client):
     response = client.post('/webhook', json={}, headers={'X-Forwarded-For': '127.0.0.1'})

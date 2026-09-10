@@ -1,7 +1,6 @@
 import hmac
 from functools import lru_cache
 
-from dotenv import load_dotenv
 from flask import (
     Flask,
     abort,
@@ -12,7 +11,7 @@ from config.settings import (
     minQtyDict,
     precisionDecimalDict,
 )
-from config.config import Config
+from config.config import AppSettings
 
 # Import exchanges
 from exchanges.binance import place_order_binance
@@ -33,8 +32,7 @@ from models.enums import (
 )
 from models.webhook import WebhookPayload
 
-load_dotenv()
-Config.validate_app_startup()
+app_settings = AppSettings()
 
 app = Flask(__name__)
 mongo_client = None
@@ -44,12 +42,11 @@ mongo_repository = MongoRepository()
 
 @lru_cache(maxsize=1)
 def get_whitelisted_ips():
-    raw = Config.get_optional(Config.WHITELISTED_IPS, '')
-    return {ip.strip() for ip in raw.split(',') if ip.strip()}
+    return {ip.strip() for ip in app_settings.WHITELISTED_IPS.split(',') if ip.strip()}
 
 
 def get_webhook_secret():
-    return Config.get_optional(Config.WEBHOOK_SECRET, '').strip()
+    return (app_settings.WEBHOOK_SECRET or '').strip()
 
 
 def _normalize_ticker(ticker):

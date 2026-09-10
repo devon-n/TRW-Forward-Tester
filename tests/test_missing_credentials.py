@@ -1,8 +1,8 @@
-import os
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
+from config.config import ExchangeSettings
 from exchanges.binance import place_order_binance
 from exchanges.bybit import place_order_bybit
 from exchanges.hyperliquid import create_hyperliquid_exchange
@@ -21,53 +21,72 @@ def test_missing_credential_error_has_structured_safe_payload():
     assert "secret-value" not in str(failure.to_dict())
 
 
-@patch.dict(os.environ, {}, clear=True)
-@patch("exchanges.binance.UMFutures")
-def test_binance_missing_credentials_are_translated_before_client_creation(mock_client):
-    with pytest.raises(MissingCredentialError) as exc_info:
-        place_order_binance("BTCUSDT", "1", {})
+@pytest.mark.parametrize(
+    ("place_order", "context", "settings", "client_path"),
+    [
+        (place_order_binance, "Binance REAL", ExchangeSettings(), "exchanges.binance.UMFutures"),
+        (place_order_bybit, "Bybit REAL", ExchangeSettings(API_KEY="key"), "exchanges.bybit.HTTP"),
+    ],
+)
+def test_binance_and_bybit_missing_credentials_are_local(place_order, context, settings, client_path):
+    with patch(f"{place_order.__module__}.ExchangeSettings", return_value=settings), patch(client_path) as mock_client:
+        with pytest.raises(MissingCredentialError, match=context):
+            place_order("BTCUSDT", "1", {})
 
-    assert "API_KEY" in str(exc_info.value)
-    assert "API_SECRET" in str(exc_info.value)
     mock_client.assert_not_called()
 
 
-@patch.dict(os.environ, {"API_KEY": "key"}, clear=True)
-@patch("exchanges.bybit.HTTP")
-def test_bybit_missing_credentials_are_translated_before_client_creation(mock_http):
-    with pytest.raises(MissingCredentialError) as exc_info:
-        place_order_bybit("BTCUSDT", "1", {})
+def test_hyperliquid_signed_requires_private_key():
+    settings = ExchangeSettings(HYPERLIQUID_WALLET_ADDRESS="wallet")
+    with patch("exchanges.hyperliquid.ExchangeSettings", return_value=settings), patch("exchanges.hyperliquid.ccxt.hyperliquid") as mock_exchange:
+        with pytest.raises(MissingCredentialError, match="HYPERLIQUID_PRIVATE_KEY"):
+            create_hyperliquid_exchange()
 
-    assert "API_SECRET" in str(exc_info.value)
-    assert "key" not in str(exc_info.value)
-    mock_http.assert_not_called()
+    mock_exchange.assert_not_called()
 
 
-@patch.dict(os.environ, {}, clear=True)
-@patch("exchanges.hyperliquid.ccxt.hyperliquid")
-def test_hyperliquid_public_requires_wallet_only(mock_hyperliquid):
-    with pytest.raises(MissingCredentialError) as exc_info:
+def test_hyperliquid_public_requires_wallet_but_not_private_key():
+    settings = ExchangeSettings()
+    with patch("exchanges.hyperliquid.ExchangeSettings", return_value=settings), patch("exchanges.hyperliquid.ccxt.hyperliquid", return_value=MagicMock()) as mock_exchange:
+        with pytest.raises(MissingCredentialError, match="HYPERLIQUID_WALLET_ADDRESS"):
+            create_hyperliquid_exchange(require_private_key=False)
+
+    mock_exchange.assert_not_called()
+
+
+def test_hyperliquid_public_accepts_wallet_without_private_key():
+    settings = ExchangeSettings(HYPERLIQUID_WALLET_ADDRESS="wallet")
+    with patch("exchanges.hyperliquid.ExchangeSettings", return_value=settings), patch("exchanges.hyperliquid.ccxt.hyperliquid", return_value=MagicMock()) as mock_exchange:
         create_hyperliquid_exchange(require_private_key=False)
 
-    assert "HYPERLIQUID_WALLET_ADDRESS" in str(exc_info.value)
-    assert "HYPERLIQUID_PRIVATE_KEY" not in str(exc_info.value)
-    mock_hyperliquid.assert_not_called()
+    mock_exchange.assert_called_once_with({"walletAddress": "wallet"})
 
 
-@patch.dict(os.environ, {"HYPERLIQUID_WALLET_ADDRESS": "wallet"}, clear=True)
-@patch("exchanges.hyperliquid.ccxt.hyperliquid")
-def test_hyperliquid_signed_requires_private_key(mock_hyperliquid):
-    with pytest.raises(MissingCredentialError) as exc_info:
-        create_hyperliquid_exchange()
+def test_exchange_credentials_are_read_at_operation_boundary():
+    with patch.dict(
+        'os.environ',
+        {'API_KEY': 'key-after-import', 'API_SECRET': 'secret-after-import'},
+        clear=True,
+    ), patch('exchanges.binance.UMFutures') as mock_binance:
+        place_order_binance('BTCUSDT', '1', {'strategy': {'order_action': 'buy'}})
+    mock_binance.assert_called_once_with('key-after-import', 'secret-after-import')
 
-    assert "HYPERLIQUID_PRIVATE_KEY" in str(exc_info.value)
-    assert "wallet" not in str(exc_info.value)
-    mock_hyperliquid.assert_not_called()
+    with patch.dict(
+        'os.environ',
+        {'API_KEY': 'key-after-import', 'API_SECRET': 'secret-after-import'},
+        clear=True,
+    ), patch('exchanges.bybit.HTTP') as mock_bybit:
+        place_order_bybit('BTCUSDT', '1', {'strategy': {'order_action': 'buy'}})
+    mock_bybit.assert_called_once_with(
+        testnet=False,
+        api_key='key-after-import',
+        api_secret='secret-after-import',
+    )
 
-
-@patch.dict(os.environ, {"HYPERLIQUID_WALLET_ADDRESS": "wallet"}, clear=True)
-@patch("exchanges.hyperliquid.ccxt.hyperliquid")
-def test_hyperliquid_public_does_not_require_private_key(mock_hyperliquid):
-    create_hyperliquid_exchange(require_private_key=False)
-
-    mock_hyperliquid.assert_called_once_with({"walletAddress": "wallet"})
+    with patch.dict(
+        'os.environ',
+        {'HYPERLIQUID_WALLET_ADDRESS': 'wallet-after-import'},
+        clear=True,
+    ), patch('exchanges.hyperliquid.ccxt.hyperliquid') as mock_hyperliquid:
+        create_hyperliquid_exchange(require_private_key=False)
+    mock_hyperliquid.assert_called_once_with({'walletAddress': 'wallet-after-import'})
