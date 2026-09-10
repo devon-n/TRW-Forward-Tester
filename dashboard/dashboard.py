@@ -1,27 +1,25 @@
 import os
 import sys
 
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import pandas as pd
 import streamlit as st
 from helpers import calculate_profit, truncate_name
-from dotenv import load_dotenv
-from pymongo import MongoClient # type: ignore
-
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from config import minQtyDict, precisionDecimalDict
+from repositories.mongo import MongoRepository
+from config.config import AppSettings
+from config.settings import minQtyDict, precisionDecimalDict
 
 
-load_dotenv()
+app_settings = AppSettings()
+app_settings.validate_required('MONGO_URI')
 
 st.set_page_config(layout='wide')
 
 @st.cache_data(ttl=3600)  # Cache for 1 hour
 def get_data_from_mongodb():
     print('\nGetting data from DB...\n')
-    mongo_client = MongoClient(os.getenv('MONGO_URI'))
-    db = mongo_client.trading
-    trades_collection = db.trades
-    trades = list(trades_collection.find({}))
+    trades = MongoRepository().get_trades()
     df = pd.DataFrame(trades)
     print('Data retrieved from MongoDB')
     return df

@@ -7,25 +7,28 @@ or we fall back to fetch_ticker. Slippage is a fraction (e.g. 0.05 for 5%), same
 ExchangeClient-style wrapper.
 """
 import json
-import os
 
 import ccxt
-from logging_utils import sanitize_dict
-
+from config.config import AppSettings, SettingsValidationError
+from utils.errors import MissingCredentialError
+from utils.logging_utils import sanitize_dict
 
 def create_hyperliquid_exchange(require_private_key=True):
-    wallet_address = os.getenv('HYPERLIQUID_WALLET_ADDRESS')
-    private_key = os.getenv('HYPERLIQUID_PRIVATE_KEY')
-
-    if not wallet_address:
-        raise ValueError('Missing Hyperliquid wallet address. Set HYPERLIQUID_WALLET_ADDRESS.')
+    settings = AppSettings()
+    wallet_address, private_key = settings.HYPERLIQUID_WALLET_ADDRESS, settings.HYPERLIQUID_PRIVATE_KEY
+    required = ['HYPERLIQUID_WALLET_ADDRESS']
+    if require_private_key:
+        required.append('HYPERLIQUID_PRIVATE_KEY')
+    try:
+        settings.validate_required(*required)
+    except SettingsValidationError as error:
+        context = "Hyperliquid signed" if require_private_key else "Hyperliquid public"
+        raise MissingCredentialError(context, error.missing) from error
 
     exchange_config = {
         'walletAddress': wallet_address,
     }
     if require_private_key:
-        if not private_key:
-            raise ValueError('Missing Hyperliquid private key. Set HYPERLIQUID_PRIVATE_KEY.')
         exchange_config['privateKey'] = private_key
 
     return ccxt.hyperliquid(exchange_config)
@@ -81,7 +84,8 @@ def extract_order_params(data):
         if value is not None and value != '':
             params[key] = value
 
-    slippage = _parse_slippage(data.get('slippage')) or _parse_slippage(os.getenv('HYPERLIQUID_SLIPPAGE'))
+    settings = AppSettings()
+    slippage = _parse_slippage(data.get('slippage')) or settings.HYPERLIQUID_SLIPPAGE
     if slippage is not None and slippage > 0:
         params['slippage'] = slippage
 
@@ -191,18 +195,20 @@ def fetch_balance_hyperliquid():
 
 
 def fetch_historical_orders_hyperliquid():
+    settings = AppSettings()
     exchange = create_hyperliquid_exchange(require_private_key=False)
     return exchange.public_post_info({
         'type': 'historicalOrders',
-        'user': os.getenv('HYPERLIQUID_WALLET_ADDRESS'),
+        'user': settings.HYPERLIQUID_WALLET_ADDRESS,
     })
 
 
 def fetch_fills_by_time_hyperliquid(start_time, end_time):
+    settings = AppSettings()
     exchange = create_hyperliquid_exchange(require_private_key=False)
     return exchange.public_post_info({
         'type': 'userFillsByTime',
-        'user': os.getenv('HYPERLIQUID_WALLET_ADDRESS'),
+        'user': settings.HYPERLIQUID_WALLET_ADDRESS,
         'startTime': start_time,
         'endTime': end_time,
     })

@@ -1,6 +1,6 @@
 import json
 
-from logging_utils import sanitize_dict
+from utils.logging_utils import sanitize_dict
 from models.enums import (
     Exchange,
     OrderAction,
@@ -108,6 +108,16 @@ class ExchangeSubmissionError(TRWError):
     code = "exchange_submission_failed"
     stage = "exchange_submission"
     message = "Exchange order submission failed"
+
+
+class MissingCredentialError(TRWError):
+    code = "missing_credential"
+    stage = "configuration"
+
+    def __init__(self, context, credential_names):
+        names = ", ".join(credential_names)
+        self.message = f"Missing required {context} credentials: {names}"
+        super().__init__()
 
 
 class PersistenceError(TRWError):

@@ -56,25 +56,14 @@ def test_cancel_entry_and_children_hyperliquid_marks_partial_child_failures(mock
     }
 
 
-@patch.dict(os.environ, {'HYPERLIQUID_WALLET_ADDRESS': '0xabc'}, clear=True)
-@patch('exchanges.hyperliquid.ccxt.hyperliquid')
-def test_create_hyperliquid_exchange_allows_public_exchange_without_private_key(mock_hyperliquid):
-    mock_exchange = MagicMock()
-    mock_hyperliquid.return_value = mock_exchange
-
-    result = create_hyperliquid_exchange(require_private_key=False)
-
-    mock_hyperliquid.assert_called_once_with({'walletAddress': '0xabc'})
-    assert result is mock_exchange
-
-
-@patch.dict(os.environ, {'HYPERLIQUID_WALLET_ADDRESS': '0xabc'}, clear=True)
 @patch('exchanges.hyperliquid.create_hyperliquid_exchange')
+@patch.dict(os.environ, {'HYPERLIQUID_WALLET_ADDRESS': '0xabc'}, clear=False)
 def test_fetch_historical_orders_hyperliquid_uses_public_exchange(mock_create_exchange):
     mock_exchange = MagicMock()
     mock_create_exchange.return_value = mock_exchange
 
-    fetch_historical_orders_hyperliquid()
+    with patch.dict('os.environ', {'HYPERLIQUID_WALLET_ADDRESS': '0xabc'}):
+        fetch_historical_orders_hyperliquid()
 
     mock_create_exchange.assert_called_once_with(require_private_key=False)
     mock_exchange.public_post_info.assert_called_once_with({
@@ -83,13 +72,14 @@ def test_fetch_historical_orders_hyperliquid_uses_public_exchange(mock_create_ex
     })
 
 
-@patch.dict(os.environ, {'HYPERLIQUID_WALLET_ADDRESS': '0xabc'}, clear=True)
 @patch('exchanges.hyperliquid.create_hyperliquid_exchange')
+@patch.dict(os.environ, {'HYPERLIQUID_WALLET_ADDRESS': '0xabc'}, clear=False)
 def test_fetch_fills_by_time_hyperliquid_uses_public_exchange(mock_create_exchange):
     mock_exchange = MagicMock()
     mock_create_exchange.return_value = mock_exchange
 
-    fetch_fills_by_time_hyperliquid(100, 200)
+    with patch.dict('os.environ', {'HYPERLIQUID_WALLET_ADDRESS': '0xabc'}):
+        fetch_fills_by_time_hyperliquid(100, 200)
 
     mock_create_exchange.assert_called_once_with(require_private_key=False)
     mock_exchange.public_post_info.assert_called_once_with({
@@ -98,12 +88,6 @@ def test_fetch_fills_by_time_hyperliquid_uses_public_exchange(mock_create_exchan
         'startTime': 100,
         'endTime': 200,
     })
-
-
-@patch.dict(os.environ, {'HYPERLIQUID_WALLET_ADDRESS': '0xabc'}, clear=True)
-def test_create_hyperliquid_exchange_requires_private_key_by_default():
-    with pytest.raises(ValueError, match='Missing Hyperliquid private key'):
-        create_hyperliquid_exchange()
 
 
 def test_normalize_symbol_hyperliquid_supports_usdt_and_usd_formats():

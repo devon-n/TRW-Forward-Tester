@@ -1,11 +1,17 @@
 import json
-import os
 from binance.um_futures import UMFutures
-from logging_utils import sanitize_dict
-
+from config.config import AppSettings, SettingsValidationError
+from utils.errors import MissingCredentialError
+from utils.logging_utils import sanitize_dict
 
 def place_order_binance(symbol, qty, data):
-    client = UMFutures(os.getenv('API_KEY'), os.getenv('API_SECRET'))
+    settings = AppSettings()
+    try:
+        settings.validate_required('API_KEY', 'API_SECRET')
+    except SettingsValidationError as error:
+        raise MissingCredentialError("Binance REAL", error.missing) from error
+    api_key, api_secret = settings.API_KEY, settings.API_SECRET
+    client = UMFutures(api_key, api_secret)
     side = data['strategy']['order_action'].upper()
     leverage = int(data.get('leverage', 0))
     print(f"Preparing order for Binance: REAL - {side} {qty} {symbol} with leverage {leverage}")

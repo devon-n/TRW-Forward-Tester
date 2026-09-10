@@ -1,53 +1,53 @@
 import hmac
-import os
 from functools import lru_cache
 
-from dotenv import load_dotenv
 from flask import (
     Flask,
     abort,
     jsonify,
     request,
 )
-from pymongo import MongoClient
-
-from config import (
+from config.settings import (
     minQtyDict,
     precisionDecimalDict,
 )
+from config.config import AppSettings
 
 # Import exchanges
 from exchanges.binance import place_order_binance
 from exchanges.bybit import place_order_bybit
 from exchanges.hyperliquid import place_order_hyperliquid
-from errors import (
+from repositories.mongo import MongoRepository
+from utils.errors import (
     ExchangeSubmissionError,
     InvalidPositiveQuantityError,
+    MissingCredentialError,
     PersistenceError,
     TRWError,
 )
-from logging_utils import sanitize_dict
+from utils.logging_utils import sanitize_dict
 from models.enums import (
     Exchange,
     OrderType,
 )
 from models.webhook import WebhookPayload
 
-load_dotenv()
+app_settings = AppSettings()
+app_settings.validate_required('MONGO_URI', 'WHITELISTED_IPS')
 
 app = Flask(__name__)
 mongo_client = None
 trades_collection = None
+mongo_repository = MongoRepository()
 
 
 @lru_cache(maxsize=1)
 def get_whitelisted_ips():
-    raw = os.environ.get('WHITELISTED_IPS', '')
-    return {ip.strip() for ip in raw.split(',') if ip.strip()}
+    return {ip.strip() for ip in app_settings.WHITELISTED_IPS.split(',') if ip.strip()}
 
 
 def get_webhook_secret():
-    return os.environ.get('WEBHOOK_SECRET', '').strip()
+    return (app_settings.WEBHOOK_SECRET or '').strip()
 
 
 def _normalize_ticker(ticker):
@@ -83,10 +83,7 @@ def get_mongo_client():
     global mongo_client
 
     if mongo_client is None:
-        mongo_uri = os.getenv('MONGO_URI')
-        if not mongo_uri:
-            raise RuntimeError("MONGO_URI is not set")
-        mongo_client = MongoClient(mongo_uri)
+        mongo_client = mongo_repository.get_mongo_client()
     return mongo_client
 
 
@@ -94,7 +91,7 @@ def get_trades_collection():
     global trades_collection
 
     if trades_collection is None:
-        trades_collection = get_mongo_client().trading.trades
+        trades_collection = mongo_repository.get_trades_collection()
     return trades_collection
 
 def record_trade(data, order_response, failure=None):
@@ -121,7 +118,7 @@ def record_trade(data, order_response, failure=None):
         }
         if failure is not None:
             trade["failure"] = failure.to_dict() if hasattr(failure, "to_dict") else failure
-        get_trades_collection().insert_one(trade)
+        mongo_repository.insert_trade(trade, collection=get_trades_collection())
         return True
     except Exception as e:
         PersistenceError().log(e)
@@ -170,6 +167,10 @@ def execute_order(data):
             try:
                 order_response = place_order_binance(ticker, quantity, data)
                 record_trade(data, order_response)
+            except MissingCredentialError as failure:
+                record_trade(data, "Failed Real Order?", failure.to_dict())
+                failure.log()
+                return False
             except Exception as e:
                 failure = ExchangeSubmissionError()
                 record_trade(data, "Failed Real Order?", failure.to_dict())
@@ -180,6 +181,10 @@ def execute_order(data):
             try:
                 order_response = place_order_bybit(ticker, quantity, data)
                 record_trade(data, order_response)
+            except MissingCredentialError as failure:
+                record_trade(data, "Failed Real Order?", failure.to_dict())
+                failure.log()
+                return False
             except Exception as e:
                 failure = ExchangeSubmissionError()
                 record_trade(data, "Failed Real Order?", failure.to_dict())
@@ -189,6 +194,10 @@ def execute_order(data):
             try:
                 order_response = place_order_hyperliquid(ticker, quantity, data)
                 record_trade(data, order_response)
+            except MissingCredentialError as failure:
+                record_trade(data, "Failed Real Order?", failure.to_dict())
+                failure.log()
+                return False
             except Exception as e:
                 failure = ExchangeSubmissionError()
                 record_trade(data, "Failed Real Order?", failure.to_dict())
