@@ -12,7 +12,7 @@ from config.settings import minQtyDict, precisionDecimalDict
 
 
 app_settings = AppSettings()
-app_settings.validate_required('MONGO_URI')
+app_settings.database
 
 st.set_page_config(layout='wide')
 

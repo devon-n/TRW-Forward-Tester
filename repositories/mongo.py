@@ -10,10 +10,10 @@ class MongoRepository:
 
     def get_mongo_client(self):
         if self.mongo_client is None:
-            settings = AppSettings()
             if self.validate_uri:
-                settings.validate_required('MONGO_URI')
-            mongo_uri = settings.MONGO_URI
+                mongo_uri = AppSettings().database.MONGO_URI
+            else:
+                mongo_uri = AppSettings().MONGO_URI
             self.mongo_client = MongoClient(mongo_uri)
         return self.mongo_client
 

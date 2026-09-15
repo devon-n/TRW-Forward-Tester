@@ -1,16 +1,17 @@
 import json
 from pybit.unified_trading import HTTP
-from config.config import AppSettings, SettingsValidationError
+from pydantic import ValidationError
+from config.config import AppSettings, missing_field_names
 from utils.errors import MissingCredentialError
 from utils.logging_utils import sanitize_dict
 
 def place_order_bybit(symbol, qty, data):
     settings = AppSettings()
     try:
-        settings.validate_required('API_KEY', 'API_SECRET')
-    except SettingsValidationError as error:
-        raise MissingCredentialError("Bybit REAL", error.missing) from error
-    api_key, api_secret = settings.API_KEY, settings.API_SECRET
+        credentials = settings.bybit
+    except ValidationError as error:
+        raise MissingCredentialError("Bybit REAL", missing_field_names(error)) from error
+    api_key, api_secret = credentials.API_KEY, credentials.API_SECRET
     session = HTTP(
         testnet=False,
         api_key=api_key,
