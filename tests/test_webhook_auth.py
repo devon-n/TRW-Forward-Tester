@@ -4,7 +4,8 @@ from unittest.mock import patch
 from tests.test_app import build_webhook_payload
 
 
-@patch.dict(os.environ, {'WHITELISTED_IPS': '127.0.0.1'})
+from config.config import EnvNames
+@patch.dict(os.environ, {EnvNames.WHITELISTED_IPS: '127.0.0.1'})
 @patch('app.execute_order')
 def test_webhook_bypass_when_secret_not_set(mock_execute_order, client):
     """
@@ -17,7 +18,7 @@ def test_webhook_bypass_when_secret_not_set(mock_execute_order, client):
 
     from app import app_settings
 
-    with patch.object(app_settings, 'WEBHOOK_SECRET', ''):
+    with patch.object(app_settings, EnvNames.WEBHOOK_SECRET, ''):
         response = client.post(
             '/webhook',
             json=data,
@@ -28,7 +29,7 @@ def test_webhook_bypass_when_secret_not_set(mock_execute_order, client):
     assert response.json == {"code": "success", "message": "Order executed"}
     mock_execute_order.assert_called_once()
 
-@patch.dict(os.environ, {'WHITELISTED_IPS': '127.0.0.1'})
+@patch.dict(os.environ, {EnvNames.WHITELISTED_IPS: '127.0.0.1'})
 @patch('app.execute_order')
 def test_webhook_enforced_when_secret_is_set(mock_execute_order, client):
     """
@@ -40,7 +41,7 @@ def test_webhook_enforced_when_secret_is_set(mock_execute_order, client):
 
     from app import app_settings
 
-    with patch.object(app_settings, 'WEBHOOK_SECRET', 'test-secret'):
+    with patch.object(app_settings, EnvNames.WEBHOOK_SECRET, 'test-secret'):
         response = client.post(
             '/webhook',
             json=data,

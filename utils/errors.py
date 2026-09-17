@@ -114,9 +114,9 @@ class MissingCredentialError(TRWError):
     code = "missing_credential"
     stage = "configuration"
 
-    def __init__(self, context, credential_names):
+    def __init__(self, credential_names):
         names = ", ".join(credential_names)
-        self.message = f"Missing required {context} credentials: {names}"
+        self.message = f"Missing required credentials: {names}"
         super().__init__()
 
 

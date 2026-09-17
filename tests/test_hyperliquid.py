@@ -2,6 +2,7 @@ import os
 from unittest.mock import MagicMock, patch
 
 import pytest
+from config.config import EnvNames
 import ccxt
 
 from exchanges.hyperliquid import (
@@ -17,7 +18,7 @@ from exchanges.hyperliquid import (
 )
 
 
-@patch.dict(os.environ, {'HYPERLIQUID_SLIPPAGE': ''}, clear=False)
+@patch.dict(os.environ, {EnvNames.HYPERLIQUID_SLIPPAGE: ''}, clear=False)
 def test_extract_order_params_uses_strategy_values_when_top_level_values_are_blank():
     data = {
         'reduceOnly': '',
@@ -57,12 +58,12 @@ def test_cancel_entry_and_children_hyperliquid_marks_partial_child_failures(mock
 
 
 @patch('exchanges.hyperliquid.create_hyperliquid_exchange')
-@patch.dict(os.environ, {'HYPERLIQUID_WALLET_ADDRESS': '0xabc'}, clear=False)
+@patch.dict(os.environ, {EnvNames.HYPERLIQUID_WALLET_ADDRESS: '0xabc'}, clear=False)
 def test_fetch_historical_orders_hyperliquid_uses_public_exchange(mock_create_exchange):
     mock_exchange = MagicMock()
     mock_create_exchange.return_value = mock_exchange
 
-    with patch.dict('os.environ', {'HYPERLIQUID_WALLET_ADDRESS': '0xabc'}):
+    with patch.dict('os.environ', {EnvNames.HYPERLIQUID_WALLET_ADDRESS: '0xabc'}):
         fetch_historical_orders_hyperliquid()
 
     mock_create_exchange.assert_called_once_with(require_private_key=False)
@@ -73,12 +74,12 @@ def test_fetch_historical_orders_hyperliquid_uses_public_exchange(mock_create_ex
 
 
 @patch('exchanges.hyperliquid.create_hyperliquid_exchange')
-@patch.dict(os.environ, {'HYPERLIQUID_WALLET_ADDRESS': '0xabc'}, clear=False)
+@patch.dict(os.environ, {EnvNames.HYPERLIQUID_WALLET_ADDRESS: '0xabc'}, clear=False)
 def test_fetch_fills_by_time_hyperliquid_uses_public_exchange(mock_create_exchange):
     mock_exchange = MagicMock()
     mock_create_exchange.return_value = mock_exchange
 
-    with patch.dict('os.environ', {'HYPERLIQUID_WALLET_ADDRESS': '0xabc'}):
+    with patch.dict('os.environ', {EnvNames.HYPERLIQUID_WALLET_ADDRESS: '0xabc'}):
         fetch_fills_by_time_hyperliquid(100, 200)
 
     mock_create_exchange.assert_called_once_with(require_private_key=False)
@@ -156,7 +157,7 @@ def test_set_leverage_hyperliquid_does_not_swallow_non_ccxt_errors():
         set_leverage_hyperliquid(exchange, 'BTC/USDC:USDC', 5)
 
 
-@patch.dict(os.environ, {'HYPERLIQUID_SLIPPAGE': ''}, clear=False)
+@patch.dict(os.environ, {EnvNames.HYPERLIQUID_SLIPPAGE: ''}, clear=False)
 @patch('exchanges.hyperliquid.create_hyperliquid_exchange')
 def test_place_order_hyperliquid_happy_path(mock_create_exchange):
     exchange = MagicMock()
@@ -184,7 +185,7 @@ def test_place_order_hyperliquid_happy_path(mock_create_exchange):
     )
 
 
-@patch.dict(os.environ, {'HYPERLIQUID_SLIPPAGE': ''}, clear=False)
+@patch.dict(os.environ, {EnvNames.HYPERLIQUID_SLIPPAGE: ''}, clear=False)
 @patch('exchanges.hyperliquid.create_hyperliquid_exchange')
 def test_place_order_hyperliquid_raises_clear_error_for_missing_order_action(mock_create_exchange):
     mock_create_exchange.return_value = MagicMock()
@@ -197,7 +198,7 @@ def test_place_order_hyperliquid_raises_clear_error_for_missing_order_action(moc
         place_order_hyperliquid('BTCUSDT', '0.25', data)
 
 
-@patch.dict(os.environ, {'HYPERLIQUID_SLIPPAGE': ''}, clear=False)
+@patch.dict(os.environ, {EnvNames.HYPERLIQUID_SLIPPAGE: ''}, clear=False)
 @patch('exchanges.hyperliquid.create_hyperliquid_exchange')
 def test_place_order_hyperliquid_raises_when_leverage_setup_fails(mock_create_exchange):
     exchange = MagicMock()
@@ -218,7 +219,7 @@ def test_place_order_hyperliquid_raises_when_leverage_setup_fails(mock_create_ex
     exchange.create_order.assert_not_called()
 
 
-@patch.dict(os.environ, {'HYPERLIQUID_SLIPPAGE': ''}, clear=False)
+@patch.dict(os.environ, {EnvNames.HYPERLIQUID_SLIPPAGE: ''}, clear=False)
 @patch('exchanges.hyperliquid.create_hyperliquid_exchange')
 def test_place_order_hyperliquid_propagates_exchange_api_errors(mock_create_exchange):
     exchange = MagicMock()

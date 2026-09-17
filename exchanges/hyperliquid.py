@@ -19,8 +19,7 @@ def create_hyperliquid_exchange(require_private_key=True):
     try:
         credentials = settings.hyperliquid_real if require_private_key else settings.hyperliquid_public
     except ValidationError as error:
-        context = "Hyperliquid signed" if require_private_key else "Hyperliquid public"
-        raise MissingCredentialError(context, missing_field_names(error)) from error
+        raise MissingCredentialError(missing_field_names(error)) from error
 
     exchange_config = {
         'walletAddress': credentials.HYPERLIQUID_WALLET_ADDRESS,

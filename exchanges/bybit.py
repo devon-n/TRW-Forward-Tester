@@ -10,7 +10,7 @@ def place_order_bybit(symbol, qty, data):
     try:
         credentials = settings.bybit
     except ValidationError as error:
-        raise MissingCredentialError("Bybit REAL", missing_field_names(error)) from error
+        raise MissingCredentialError(missing_field_names(error)) from error
     api_key, api_secret = credentials.API_KEY, credentials.API_SECRET
     session = HTTP(
         testnet=False,
