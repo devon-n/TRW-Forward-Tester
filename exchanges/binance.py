@@ -11,8 +11,7 @@ def place_order_binance(symbol, qty, data):
         credentials = settings.binance
     except ValidationError as error:
         raise MissingCredentialError(missing_field_names(error)) from error
-    api_key, api_secret = credentials.API_KEY, credentials.API_SECRET
-    client = UMFutures(api_key, api_secret)
+    client = UMFutures(credentials.API_KEY, credentials.API_SECRET)
     side = data['strategy']['order_action'].upper()
     leverage = int(data.get('leverage', 0))
     print(f"Preparing order for Binance: REAL - {side} {qty} {symbol} with leverage {leverage}")

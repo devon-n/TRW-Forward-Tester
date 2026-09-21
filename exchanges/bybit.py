@@ -11,11 +11,10 @@ def place_order_bybit(symbol, qty, data):
         credentials = settings.bybit
     except ValidationError as error:
         raise MissingCredentialError(missing_field_names(error)) from error
-    api_key, api_secret = credentials.API_KEY, credentials.API_SECRET
     session = HTTP(
         testnet=False,
-        api_key=api_key,
-        api_secret=api_secret,
+        api_key=credentials.API_KEY,
+        api_secret=credentials.API_SECRET,
     )
     side = data['strategy']['order_action'].upper().capitalize()
     leverage = float(data.get('leverage', 0))
