@@ -356,7 +356,7 @@ The dashboard needs `MONGO_URI` and at least one trade in `trading.trades`.
 2. The client IP must be in `WHITELISTED_IPS` or the request gets `403`.
 3. If `WEBHOOK_SECRET` is configured, the JSON `passphrase` must match it or the request gets `401`.
 4. Invalid or empty JSON gets `400`.
-5. Quantity rules from `config.py` normalize the symbol, enforce minimum quantity, and apply decimal precision where configured.
+5. Quantity rules from `config/settings.py` normalize the symbol, enforce minimum quantity, and apply decimal precision where configured.
 6. If `order_type` is `PAPER`, no exchange call is made and the event is still saved to MongoDB.
 7. If `order_type` is `REAL`, the app routes to `BINANCE`, `BYBIT`, or `HYPERLIQUID` and uses environment-based credentials for that venue.
 8. The event is inserted into `trading.trades` with metadata, quantity, side, leverage, and `order_response`.
@@ -378,7 +378,7 @@ flowchart LR
 
 ## Minimum quantity and precision
 
-Edit `config.py` if a symbol needs exchange-specific quantity handling.
+Edit `config/settings.py` if a symbol needs exchange-specific quantity handling.
 
 - `minQtyDict`: symbol to minimum contracts
 - `precisionDecimalDict`: symbol to decimal precision used for rounding
@@ -411,7 +411,7 @@ Then set `exchange` to the correct venue and make sure the matching credentials 
 |--------|------|
 | `app.py` | Flask app, `/webhook`, execution routing, MongoDB writes |
 | `exchanges/` | Exchange adapters for Binance, Bybit, and Hyperliquid |
-| `config.py` | Minimum quantity and precision settings |
+| `config/settings.py` | Minimum quantity and precision settings |
 | `webhook_format.json` | Example webhook payload |
 | `dashboard/dashboard.py` | Streamlit reporting UI |
 
